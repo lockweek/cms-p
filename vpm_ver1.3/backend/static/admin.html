@@ -271,10 +271,17 @@
 </style>
 </head>
 <body>
-  <header>
-    <h1>📋 CMS — Админ-панель</h1>
+<header>
+  <h1>📋 CMS — Админ-панель</h1>
+  <div style="display:flex;gap:20px;align-items:center;">
     <a href="/display" target="_blank">Открыть дисплей →</a>
-  </header>
+    <button onclick="logout()" style="
+      background:#dc2626;color:#fff;border:none;
+      padding:7px 16px;border-radius:6px;cursor:pointer;
+      font-weight:600;font-size:13px;font-family:inherit;
+    ">Выйти</button>
+  </div>
+</header>
 
   <nav>
     <button class="active" data-tab="employees">Сотрудники</button>
@@ -771,6 +778,17 @@
     editingDatesAnnId = null;
     renderAnnouncementsTable();
   }
+  function logout() {
+  if (!confirm('Выйти из админ-панели?')) return;
+  // Отправляем неверные креды, чтобы браузер сбросил кэш Basic Auth,
+  // затем перезагружаем страницу — браузер покажет prompt логина.
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', '/api/logout', true, 'logout', 'logout');
+  xhr.onloadend = () => {
+    window.location.href = '/admin?t=' + Date.now();
+  };
+  xhr.send();
+}
 
   async function saveAnnouncementDates(id) {
     const from = document.getElementById('ann-edit-from-' + id).value;
