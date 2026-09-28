@@ -105,6 +105,5 @@
 ### Запуск
 
 ```bash
-git clone https://github.com/lockweek/cms-display.git
-cd cms-display
+скопировать в папку и запустить
 docker compose up -d --build
