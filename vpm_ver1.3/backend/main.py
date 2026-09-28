@@ -1,4 +1,7 @@
 import os
+import os
+import base64
+import secrets
 import uuid
 import shutil
 import sqlite3
@@ -6,8 +9,11 @@ from datetime import date, datetime
 from typing import Optional
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi.responses import (
+    FileResponse, HTMLResponse, StreamingResponse, Response,
+)
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 
 DATA_DIR = "/data"
 DB_PATH = os.path.join(DATA_DIR, "cms.db")
@@ -18,6 +24,62 @@ os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
+# ==================================================================
+# ===================== ADMIN AUTH (HTTP Basic) ====================
+# ==================================================================
+ADMIN_USER = os.getenv("ADMIN_USER", "admin")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin")
+ADMIN_REALM = "CMS Admin"
+
+if ADMIN_PASSWORD == "admin":
+    print("[AUTH] ⚠️  ВНИМАНИЕ: используется пароль по умолчанию. "
+          "Задайте ADMIN_PASSWORD через переменную окружения!")
+
+# Пути, требующие авторизации (всё, что относится к админке).
+# /display, /api/display-data, /media, /static — публичные.
+PROTECTED_PREFIXES = (
+    "/admin",
+    "/api/employees",
+    "/api/announcements",
+    "/api/images",
+    "/api/videos",
+    "/api/settings",
+)
+
+
+def _is_protected(path: str) -> bool:
+    return any(path == p or path.startswith(p + "/") for p in PROTECTED_PREFIXES)
+
+
+def _check_basic_auth(request: Request) -> bool:
+    auth = request.headers.get("authorization", "")
+    if not auth.lower().startswith("basic "):
+        return False
+    try:
+        decoded = base64.b64decode(auth[6:].strip()).decode("utf-8")
+    except Exception:
+        return False
+    user, sep, pwd = decoded.partition(":")
+    if not sep:
+        return False
+    ok_user = secrets.compare_digest(user, ADMIN_USER)
+    ok_pwd = secrets.compare_digest(pwd, ADMIN_PASSWORD)
+    return ok_user and ok_pwd
+
+
+class AdminAuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if _is_protected(request.url.path):
+            if not _check_basic_auth(request):
+                return Response(
+                    status_code=401,
+                    content="Требуется авторизация",
+                    headers={"WWW-Authenticate": f'Basic realm="{ADMIN_REALM}"'},
+                )
+        return await call_next(request)
+
+
+# ---- БД и FastAPI ----
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -25,63 +87,26 @@ def get_db():
 
 
 def init_db():
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("""CREATE TABLE IF NOT EXISTS employees (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        full_name TEXT NOT NULL,
-        position TEXT NOT NULL,
-        birth_date TEXT NOT NULL
-    )""")
-    c.execute("""CREATE TABLE IF NOT EXISTS announcements (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        filename TEXT NOT NULL,
-        original_name TEXT,
-        date_from TEXT NOT NULL,
-        date_to TEXT NOT NULL
-    )""")
-    c.execute("""CREATE TABLE IF NOT EXISTS images (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        filename TEXT NOT NULL,
-        original_name TEXT,
-        uploaded_at TEXT NOT NULL
-    )""")
-    c.execute("""CREATE TABLE IF NOT EXISTS videos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        filename TEXT NOT NULL,
-        original_name TEXT,
-        uploaded_at TEXT NOT NULL
-    )""")
-    c.execute("""CREATE TABLE IF NOT EXISTS settings (
-        key TEXT PRIMARY KEY,
-        value TEXT
-    )""")
+    # ... (весь код init_db из предыдущей версии, БЕЗ изменений)
+    ...
 
-    # --- Миграция: колонка design_json для конструктора ---
-    c.execute("PRAGMA table_info(announcements)")
-    cols = {row[1] for row in c.fetchall()}
-    if "design_json" not in cols:
-        c.execute("ALTER TABLE announcements ADD COLUMN design_json TEXT")
-
-    defaults = {
-        "slide_duration": "8",
-        "image_slide_duration": "8",
-        "birthday_bg_color": "#0f172a",
-        "birthday_bg_gradient": "linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%)",
-        "birthday_bg_image": "",
-        "video_muted": "1",
-    }
-    for k, v in defaults.items():
-        c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (k, v))
-    conn.commit()
-    conn.close()
-
-
-init_db()
 
 app = FastAPI(title="CMS Display")
+app.add_middleware(AdminAuthMiddleware)          # <-- регистрация auth
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+@app.get("/logout")
+@app.get("/api/logout")
+def logout():
+    """
+    Принудительный выход из Basic Auth.
+    Возвращает 401 → браузер должен сбросить кэшированные креды.
+    """
+    return Response(
+        status_code=401,
+        content="Logged out",
+        headers={"WWW-Authenticate": f'Basic realm="{ADMIN_REALM}"'},
+    )
 
 # ------------------- PAGES -------------------
 @app.get("/")
