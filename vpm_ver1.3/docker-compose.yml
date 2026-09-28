@@ -1,0 +1,13 @@
+
+services:
+  cms:
+    build: ./backend
+    container_name: cms_display
+    ports:
+      - "8000:8000"
+    volumes:
+      - cms_data:/data
+    restart: unless-stopped
+
+volumes:
+  cms_data:

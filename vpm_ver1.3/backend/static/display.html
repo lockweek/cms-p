@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Display</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden; background: #000;
+    font-family: 'Segoe UI', Roboto, Arial, sans-serif; color: #fff;
+  }
+  #stage { position: fixed; inset: 0; overflow: hidden; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: none; align-items: center; justify-content: center;
+  }
+  .slide.active { display: flex; }
+
+  @keyframes fadeIn      { from {opacity:0;} to {opacity:1;} }
+  @keyframes zoomIn      { from {opacity:0; transform:scale(.5);} to {opacity:1; transform:scale(1);} }
+  @keyframes slideRight  { from {opacity:0; transform:translateX(-100%);} to {opacity:1; transform:translateX(0);} }
+  @keyframes slideUp     { from {opacity:0; transform:translateY(80%);} to {opacity:1; transform:translateY(0);} }
+  @keyframes rotateIn    { from {opacity:0; transform:rotate(-180deg) scale(.3);} to {opacity:1; transform:rotate(0) scale(1);} }
+  @keyframes flipIn      { from {opacity:0; transform:perspective(1200px) rotateY(90deg);} to {opacity:1; transform:perspective(1200px) rotateY(0);} }
+  @keyframes bounceIn    { 0%{opacity:0;transform:scale(.3);} 50%{transform:scale(1.05);} 100%{opacity:1;transform:scale(1);} }
+
+  .anim-0 { animation: fadeIn 1.1s ease both; }
+  .anim-1 { animation: zoomIn 1.1s ease both; }
+  .anim-2 { animation: slideRight 1.1s ease both; }
+  .anim-3 { animation: slideUp 1.1s ease both; }
+  .anim-4 { animation: rotateIn 1.2s ease both; }
+  .anim-5 { animation: flipIn 1.2s ease both; }
+  .anim-6 { animation: bounceIn 1.2s ease both; }
+
+  /* ---------- BIRTHDAY ---------- */
+  .birthday-slide {
+    position: relative;
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 3vh 3vw;
+    background-size: cover; background-position: center;
+  }
+  .birthday-slide::before {
+    content: ''; position: absolute; inset: 0;
+    background: rgba(0,0,0,.35); z-index: 0;
+  }
+  .birthday-title {
+    position: relative; z-index: 1;
+    font-size: clamp(28px, 5vh, 70px);
+    margin-bottom: 3vh;
+    font-weight: 800;
+    color: #ffd700;
+    text-shadow: 0 0 30px rgba(255,200,50,.9), 0 4px 20px rgba(0,0,0,.8);
+    animation: pulse 2s ease-in-out infinite;
+    text-align: center;
+  }
+  @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.05);} }
+
+  .people-container {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column;
+    gap: 2.2vh; width: 92%; max-width: 1800px;
+  }
+  .person {
+    background: rgba(255,255,255,.12);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255,215,0,.45);
+    border-radius: 18px;
+    padding: 2.2vh 3vw;
+    text-align: center;
+    box-shadow: 0 12px 45px rgba(0,0,0,.45);
+    animation: personAppear .9s ease both;
+  }
+  .person:nth-child(1) { animation-delay: .25s; }
+  .person:nth-child(2) { animation-delay: .5s; }
+  .person:nth-child(3) { animation-delay: .75s; }
+  @keyframes personAppear {
+    from { opacity: 0; transform: translateY(40px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .person-name {
+    font-weight: 800; color: #fff; line-height: 1.15;
+    text-shadow: 0 2px 15px rgba(0,0,0,.85); margin-bottom: .8vh;
+  }
+  .person-position {
+    color: #ffd700; font-weight: 500;
+    text-shadow: 0 2px 15px rgba(0,0,0,.85);
+  }
+  .people-1 .person-name     { font-size: clamp(36px, 8vh, 130px); }
+  .people-1 .person-position { font-size: clamp(18px, 4.5vh, 70px); }
+  .people-2 .person-name     { font-size: clamp(30px, 6.2vh, 100px); }
+  .people-2 .person-position { font-size: clamp(16px, 3.6vh, 55px); }
+  .people-3 .person-name     { font-size: clamp(24px, 4.8vh, 80px); }
+  .people-3 .person-position { font-size: clamp(14px, 2.8vh, 42px); }
+
+  /* ---------- MEDIA ---------- */
+  .announcement-slide,
+  .image-slide,
+  .video-slide {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    background: #000;
+    position: relative;
+  }
+  .announcement-slide img,
+  .image-slide img {
+    max-width: 100%; max-height: 100%;
+    object-fit: contain;
+  }
+  .image-slide img { animation: kenburns 12s ease-in-out infinite alternate; }
+  @keyframes kenburns { from { transform: scale(1); } to { transform: scale(1.08); } }
+
+  .video-slide video {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    background: #000;
+  }
+  .video-loader {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+    opacity: 0; transition: opacity .25s;
+  }
+  .video-loader.show { opacity: 1; }
+  .video-loader .ring {
+    width: 70px; height: 70px;
+    border: 6px solid rgba(255,255,255,.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- EMPTY ---------- */
+  .empty-slide {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 3vh;
+    font-size: clamp(28px, 6vh, 90px);
+    color: #94a3b8; background: #0f172a;
+    text-align: center;
+  }
+  .empty-slide .emoji { font-size: clamp(60px, 14vh, 220px); }
+
+  /* ---------- DATE ---------- */
+  #currentDate {
+    position: fixed; bottom: 2vh; left: 2vw;
+    font-size: clamp(14px, 2.4vh, 32px);
+    color: #fff;
+    background: rgba(0,0,0,.55);
+    padding: .7vh 1.3vw; border-radius: 12px;
+    z-index: 9999; font-weight: 600;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.2);
+    letter-spacing: .04em;
+  }
+
+  /* ---------- CONFETTI ---------- */
+  .confetti {
+    position: fixed; top: -20px;
+    pointer-events: none; z-index: 5;
+    width: 12px; height: 12px; opacity: .85;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    from { transform: translateY(-5vh) rotate(0deg); }
+    to   { transform: translateY(105vh) rotate(720deg); }
+  }
+</style>
+</head>
+<body>
+  <div id="stage"></div>
+  <div id="currentDate"></div>
+  <div id="confetti-container"></div>
+
+<script>
+  let slides = [];
+  let settings = {};
+  let currentIndex = 0;
+  let timer = null;
+  const ANIM_COUNT = 7;
+
+  const esc = (s) => {
+    const d = document.createElement('div');
+    d.textContent = s ?? '';
+    return d.innerHTML;
+  };
+
+  function guessMime(url) {
+    const ext = (url.split('.').pop() || '').toLowerCase();
+    const map = {
+      mp4: 'video/mp4', m4v: 'video/mp4',
+      webm: 'video/webm',
+      ogg: 'video/ogg', ogv: 'video/ogg',
+      mov: 'video/quicktime',
+    };
+    return map[ext] || 'video/mp4';
+  }
+
+  async function fetchData() {
+    try {
+      const r = await fetch('/api/display-data', { cache: 'no-store' });
+      const data = await r.json();
+      slides = data.slides || [];
+      settings = data.settings || {};
+    } catch (e) {
+      console.error(e);
+      slides = []; settings = {};
+    }
+  }
+
+  function updateDate() {
+    const d = new Date();
+    const s = String(d.getDate()).padStart(2, '0') + '.' +
+              String(d.getMonth() + 1).padStart(2, '0') + '.' +
+              d.getFullYear();
+    document.getElementById('currentDate').textContent = s;
+  }
+
+  // ---------- VIDEO ELEMENT ----------
+  function makeVideoEl(src) {
+    const wrap = document.createElement('div');
+    wrap.className = 'video-slide';
+
+    const v = document.createElement('video');
+    v.preload = 'auto';
+    v.playsInline = true;
+    v.setAttribute('playsinline', '');
+    v.setAttribute('webkit-playsinline', '');
+    v.setAttribute('x5-playsinline', '');
+    v.controls = false;
+    v.autoplay = false; // управляем вручную
+    // Начинаем muted, если в настройках так задано — это гарантирует автоплей
+    v.muted = settings.video_muted !== '0';
+
+    const source = document.createElement('source');
+    source.src = src;
+    source.type = guessMime(src);
+    v.appendChild(source);
+
+    const loader = document.createElement('div');
+    loader.className = 'video-loader show';
+    loader.innerHTML = '<div class="ring"></div>';
+
+    wrap.appendChild(v);
+    wrap.appendChild(loader);
+    wrap._video = v;
+    wrap._loader = loader;
+    return wrap;
+  }
+
+  function playVideoElement(wrapEl) {
+    const v = wrapEl._video;
+    const loader = wrapEl._loader;
+    if (!v) return;
+
+    let started = false;
+    let skipped = false;
+
+    const showLoader = () => loader && loader.classList.add('show');
+    const hideLoader = () => loader && loader.classList.remove('show');
+
+    const skip = (reason) => {
+      if (skipped) return;
+      skipped = true;
+      console.warn('Skip video:', reason, v.currentSrc || v.src);
+      hideLoader();
+      nextSlide();
+    };
+
+    v.addEventListener('playing', () => {
+      started = true;
+      hideLoader();
+    }, { once: true });
+
+    v.addEventListener('ended', () => {
+      hideLoader();
+      nextSlide();
+    }, { once: true });
+
+    v.addEventListener('error', () => {
+      // mediaError: 1 aborted, 2 network, 3 decode, 4 src not supported
+      const code = v.error && v.error.code;
+      skip('media error ' + code);
+    }, { once: true });
+
+    // Если через 20 секунд видео так и не начало играть — скипаем
+    const loadTimeout = setTimeout(() => {
+      if (!started) skip('load timeout');
+    }, 20000);
+    v.addEventListener('playing', () => clearTimeout(loadTimeout), { once: true });
+
+    // Пытаемся запустить воспроизведение с ретраями
+    const tryPlay = (attempt) => {
+      if (skipped) return;
+      showLoader();
+      let p;
+      try { p = v.play(); } catch (e) { p = Promise.reject(e); }
+      if (!p || typeof p.catch !== 'function') return;
+      p.then(() => {
+        // успех — loader снимет 'playing'
+      }).catch((err) => {
+        console.warn('play() rejected (attempt ' + attempt + '):', err && err.name);
+        if (attempt === 0 && !v.muted) {
+          // пробуем без звука
+          v.muted = true;
+          tryPlay(1);
+        } else if (attempt < 4) {
+          setTimeout(() => tryPlay(attempt + 1), 800);
+        } else {
+          skip('play() failed after retries');
+        }
+      });
+    };
+
+    // Явно перезагружаем и стартуем
+    try {
+      v.pause();
+      v.currentTime = 0;
+    } catch (e) {}
+    tryPlay(0);
+  }
+
+  // ---------- SLIDES ----------
+  function buildBirthdaySlide(grp) {
+    const el = document.createElement('div');
+    el.className = 'slide';
+
+    const inner = document.createElement('div');
+    inner.className = 'birthday-slide people-' + grp.length;
+
+    const bgImage = settings.birthday_bg_image;
+    if (bgImage) {
+      inner.style.backgroundImage = `url('/media/${bgImage}')`;
+    } else {
+      inner.style.background = settings.birthday_bg_gradient || settings.birthday_bg_color || '#1e3a8a';
+    }
+
+    const peopleHtml = grp.map(p => `
+      <div class="person">
+        <div class="person-name">${esc(p.full_name)}</div>
+        <div class="person-position">${esc(p.position)}</div>
+      </div>
+    `).join('');
+
+    inner.innerHTML = `
+      <div class="birthday-title">🎉 С Днём Рождения! 🎂</div>
+      <div class="people-container">${peopleHtml}</div>
+    `;
+    el.appendChild(inner);
+    return el;
+  }
+
+  function buildAnnouncementSlide(s) {
+    const el = document.createElement('div');
+    el.className = 'slide';
+
+    if (s.media_type === 'video') {
+      const wrap = makeVideoEl(s.src);
+      el.appendChild(wrap);
+      el._videoWrap = wrap;
+    } else {
+      el.innerHTML = `<div class="announcement-slide"><img src="${s.src}" alt=""></div>`;
+    }
+    return el;
+  }
+
+  function buildImageSlide(s) {
+    const el = document.createElement('div');
+    el.className = 'slide';
+    el.innerHTML = `<div class="image-slide"><img src="${s.image}" alt=""></div>`;
+    return el;
+  }
+
+  function buildVideoSlide(s) {
+    const el = document.createElement('div');
+    el.className = 'slide';
+    const wrap = makeVideoEl(s.video);
+    el.appendChild(wrap);
+    el._videoWrap = wrap;
+    return el;
+  }
+
+  function buildEmptySlide() {
+    const el = document.createElement('div');
+    el.className = 'slide active';
+    el.innerHTML = `
+      <div class="empty-slide">
+        <div class="emoji">🖼️</div>
+        <div>Нет событий, изображений и видео</div>
+      </div>`;
+    return el;
+  }
+
+  function render() {
+    const stage = document.getElementById('stage');
+    // Стопаем любые играющие видео
+    document.querySelectorAll('video').forEach(v => {
+      try { v.pause(); v.removeAttribute('src'); v.load(); } catch(e){}
+    });
+    stage.innerHTML = '';
+
+    if (!slides.length) {
+      stage.appendChild(buildEmptySlide());
+      return;
+    }
+
+    slides.forEach((s) => {
+      let el;
+      if (s.type === 'birthday')          el = buildBirthdaySlide(s.people);
+      else if (s.type === 'announcement') el = buildAnnouncementSlide(s);
+      else if (s.type === 'image')        el = buildImageSlide(s);
+      else if (s.type === 'video')        el = buildVideoSlide(s);
+      else                                el = buildEmptySlide();
+      stage.appendChild(el);
+    });
+
+    currentIndex = 0;
+    showSlide(0);
+  }
+
+  function showSlide(idx) {
+    const all = [...document.querySelectorAll('.slide')];
+    all.forEach((el, i) => {
+      if (i !== idx && el._videoWrap) {
+        const v = el._videoWrap._video;
+        if (v) { try { v.pause(); } catch(e){} }
+      }
+      el.classList.remove('active');
+      for (let k = 0; k < ANIM_COUNT; k++) el.classList.remove('anim-' + k);
+    });
+
+    const el = all[idx];
+    if (!el) return;
+    el.classList.add('active', 'anim-' + (idx % ANIM_COUNT));
+
+    if (el._videoWrap) {
+      if (timer) { clearTimeout(timer); timer = null; }
+      playVideoElement(el._videoWrap);
+      return;
+    }
+
+    scheduleNext();
+  }
+
+  function nextSlide() {
+    if (!slides.length) return;
+    currentIndex = (currentIndex + 1) % slides.length;
+    showSlide(currentIndex);
+  }
+
+  function currentDuration() {
+    const cur = slides[currentIndex];
+    if (cur && cur.type === 'image') {
+      const d = parseInt(settings.image_slide_duration || settings.slide_duration || '8', 10);
+      return Math.max(2, d) * 1000;
+    }
+    const d = parseInt(settings.slide_duration || '8', 10);
+    return Math.max(2, d) * 1000;
+  }
+
+  function scheduleNext() {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => { nextSlide(); }, currentDuration());
+  }
+
+  function confettiLoop() {
+    const container = document.getElementById('confetti-container');
+    const colors = ['#ffd700', '#ff6b6b', '#4ecdc4', '#a78bfa', '#f472b6', '#60a5fa', '#facc15'];
+    setInterval(() => {
+      const cur = slides[currentIndex];
+      if (!cur || cur.type !== 'birthday') return;
+      for (let i = 0; i < 4; i++) {
+        const c = document.createElement('div');
+        c.className = 'confetti';
+        c.style.left = Math.random() * 100 + 'vw';
+        c.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        c.style.animationDuration = (2.5 + Math.random() * 3) + 's';
+        c.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+        c.style.width = c.style.height = (8 + Math.random() * 10) + 'px';
+        container.appendChild(c);
+        setTimeout(() => c.remove(), 6000);
+      }
+    }, 350);
+  }
+
+  async function init() {
+    updateDate();
+    setInterval(updateDate, 60 * 1000);
+
+    await fetchData();
+    render();
+    confettiLoop();
+
+    setInterval(async () => {
+      await fetchData();
+      render();
+    }, 5 * 60 * 1000);
+  }
+
+  init();
+</script>
+</body>
+</html>
