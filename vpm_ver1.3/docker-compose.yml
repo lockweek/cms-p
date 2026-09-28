@@ -1,10 +1,12 @@
-
 services:
   cms:
     build: ./backend
     container_name: cms_display
     ports:
       - "8000:8000"
+    environment:
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
     volumes:
       - cms_data:/data
     restart: unless-stopped
