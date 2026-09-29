@@ -268,6 +268,53 @@
     background: none; border: none; cursor: pointer;
     color: #6d28d9; font-size: 16px; padding: 0 2px; line-height: 1;
   }
+  /* ============ DESIGNER ADDITIONS ============ */
+.props-group {
+  padding: 10px 0;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 8px;
+}
+.props-group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.props-group-title {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: #475569; margin-bottom: 8px;
+}
+
+.align-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.align-buttons button {
+  padding: 6px 4px; font-size: 12px; background: #e2e8f0;
+  border: none; border-radius: 4px; cursor: pointer;
+  color: #334155; font-family: inherit; transition: .15s;
+}
+.align-buttons button:hover { background: #cbd5e1; }
+
+.filter-slider { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.filter-slider label { flex: 0 0 70px; font-size: 11px; margin: 0; }
+.filter-slider input[type="range"] { flex: 1; min-width: 0; }
+.filter-slider .val {
+  flex: 0 0 46px; font-size: 11px; text-align: right;
+  color: #64748b; font-variant-numeric: tabular-nums;
+}
+
+.toolbar-group {
+  display: flex; gap: 4px; padding-right: 8px;
+  border-right: 1px solid #e2e8f0; align-items: center;
+}
+.toolbar-group:last-of-type { border-right: none; padding-right: 0; }
+
+.zoom-controls {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 12px; color: #475569;
+}
+.zoom-controls #zoom-label {
+  min-width: 46px; text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+#toggle-grid-btn.active { background: #1e40af !important; color: #fff !important; }
+
+.designer-toolbar { flex-wrap: wrap; row-gap: 8px; }
 </style>
 </head>
 <body>
@@ -388,17 +435,49 @@
 
       <div class="designer-wrap">
         <div class="designer-main">
-          <div class="designer-toolbar">
-            <button class="btn sm" onclick="addTextObj()">+ Текст</button>
-            <button class="btn sm" onclick="document.getElementById('designer-img-input').click()">+ Картинка</button>
-            <button class="btn sm" onclick="addRectObj()">+ Прямоугольник</button>
-            <span class="spacer"></span>
-            <button class="btn sm secondary" onclick="dupSelected()" title="Ctrl+D">Дублировать</button>
-            <button class="btn sm secondary" onclick="bringForward()">↑ Вверх</button>
-            <button class="btn sm secondary" onclick="sendBackward()">↓ Вниз</button>
-            <button class="btn sm danger" onclick="delSelected()" title="Delete">Удалить</button>
-            <input type="file" id="designer-img-input" accept="image/*" style="display:none" onchange="addImageObj(this)">
-          </div>
+        <div class="designer-toolbar">
+  <div class="toolbar-group">
+    <button class="btn sm" onclick="addTextObj()">+ Текст</button>
+    <button class="btn sm" onclick="document.getElementById('designer-img-input').click()">+ Картинка</button>
+    <button class="btn sm" onclick="addRectObj()">+ Прямоуг.</button>
+    <button class="btn sm" onclick="addCircleObj()">+ Круг</button>
+    <button class="btn sm" onclick="addLineObj()">+ Линия</button>
+  </div>
+
+  <div class="toolbar-group">
+    <button class="btn sm secondary" onclick="undo()" title="Отменить (Ctrl+Z)">↶</button>
+    <button class="btn sm secondary" onclick="redo()" title="Повторить (Ctrl+Y)">↷</button>
+  </div>
+
+  <div class="toolbar-group">
+    <button class="btn sm secondary" onclick="copySelected()" title="Копировать (Ctrl+C)">Копир.</button>
+    <button class="btn sm secondary" onclick="pasteClipboard()" title="Вставить (Ctrl+V)">Встав.</button>
+    <button class="btn sm secondary" onclick="dupSelected()" title="Дублировать (Ctrl+D)">Дубль</button>
+  </div>
+
+  <div class="toolbar-group">
+    <button class="btn sm secondary" onclick="bringToFront()" title="На передний план">⤒</button>
+    <button class="btn sm secondary" onclick="bringForward()" title="Выше">↑</button>
+    <button class="btn sm secondary" onclick="sendBackward()" title="Ниже">↓</button>
+    <button class="btn sm secondary" onclick="sendToBack()" title="На задний план">⤓</button>
+  </div>
+
+  <div class="toolbar-group">
+    <button class="btn sm secondary" id="toggle-grid-btn" onclick="toggleGrid()" title="Сетка"># Сетка</button>
+  </div>
+
+  <span class="spacer"></span>
+
+  <div class="toolbar-group zoom-controls">
+    <button class="btn sm secondary" onclick="zoomOut()" title="Уменьшить">−</button>
+    <span id="zoom-label">100%</span>
+    <button class="btn sm secondary" onclick="zoomIn()" title="Увеличить">+</button>
+    <button class="btn sm secondary" onclick="zoomReset()" title="Сброс">100</button>
+  </div>
+
+  <button class="btn sm danger" onclick="delSelected()" title="Удалить (Delete)">Удалить</button>
+  <input type="file" id="designer-img-input" accept="image/*" style="display:none" onchange="addImageObj(this)">
+</div>
           <div class="designer-canvas-wrap">
             <canvas id="designer-canvas" width="1920" height="1080"></canvas>
           </div>
@@ -434,10 +513,36 @@
             </div>
 
             <div id="bg-image-panel">
-              <label>Файл</label>
-              <input type="file" accept="image/*" onchange="setBgImage(this)">
-              <button class="btn sm secondary" style="margin-top: 8px;" onclick="clearBgImage()">Убрать картинку</button>
-            </div>
+  <label>Файл</label>
+  <input type="file" accept="image/*" onchange="setBgImage(this)">
+  <button class="btn sm secondary" style="margin-top: 8px; width:100%;" onclick="clearBgImage()">Убрать картинку</button>
+
+  <div style="margin-top:14px; padding-top:12px; border-top:1px solid #e2e8f0;">
+    <div class="props-group-title">Фильтры фона</div>
+    <div class="filter-slider"><label>Яркость</label>
+      <input type="range" min="0" max="200" value="100" oninput="updBgFilter('brightness', +this.value)">
+      <span class="val" id="bgb-brightness-val">100%</span></div>
+    <div class="filter-slider"><label>Контраст</label>
+      <input type="range" min="0" max="200" value="100" oninput="updBgFilter('contrast', +this.value)">
+      <span class="val" id="bgb-contrast-val">100%</span></div>
+    <div class="filter-slider"><label>Насыщ.</label>
+      <input type="range" min="0" max="200" value="100" oninput="updBgFilter('saturation', +this.value)">
+      <span class="val" id="bgb-saturation-val">100%</span></div>
+    <div class="filter-slider"><label>Размытие</label>
+      <input type="range" min="0" max="20" value="0" oninput="updBgFilter('blur', +this.value)">
+      <span class="val" id="bgb-blur-val">0px</span></div>
+    <div class="filter-slider"><label>Ч/Б</label>
+      <input type="range" min="0" max="100" value="0" oninput="updBgFilter('grayscale', +this.value)">
+      <span class="val" id="bgb-grayscale-val">0%</span></div>
+    <div class="filter-slider"><label>Сепия</label>
+      <input type="range" min="0" max="100" value="0" oninput="updBgFilter('sepia', +this.value)">
+      <span class="val" id="bgb-sepia-val">0%</span></div>
+    <div class="filter-slider"><label>Оттенок</label>
+      <input type="range" min="0" max="360" value="0" oninput="updBgFilter('hueRotate', +this.value)">
+      <span class="val" id="bgb-hueRotate-val">0°</span></div>
+    <button class="btn sm secondary" style="margin-top:6px; width:100%;" onclick="resetBgFilters()">Сбросить фильтры</button>
+  </div>
+</div>
           </div>
 
           <div class="side-section">
@@ -549,14 +654,33 @@
           </div>
         </div>
 
-        <div class="form-row" style="align-items: flex-start;">
-          <div>
-            <label>Фоновое изображение (перекрывает градиент)</label>
-            <input id="set-bg-image" type="file" accept="image/*">
-            <div class="bg-preview" id="bg-preview">нет изображения</div>
-            <button class="btn secondary" style="margin-top: 8px;" onclick="clearBgImageSettings()">Убрать фоновое изображение</button>
-          </div>
-        </div>
+   <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+  <label style="display:block; margin-bottom:10px;">Режим ротации фонов</label>
+  <label class="inline" style="margin-right:16px;">
+    <input type="radio" name="bg-rotation" value="sequential" onchange="saveBgRotation('sequential')"> По порядку
+  </label>
+  <label class="inline">
+    <input type="radio" name="bg-rotation" value="random" onchange="saveBgRotation('random')"> Случайно
+  </label>
+  <div class="hint" style="margin-top:6px;">
+    <b>По порядку</b> — слайд с ДР №1 берёт фон №1, №2 — фон №2 и т.д.<br>
+    <b>Случайно</b> — фоны перемешиваются при каждой перезагрузке данных (раз в 5 минут).
+  </div>
+</div>
+
+<div class="form-row" style="margin-top: 16px; align-items: flex-end;">
+  <div style="flex:1;">
+    <label>Загрузить фоны для слайдов с Днём Рождения</label>
+    <input id="set-bg-files" type="file" accept="image/*" multiple style="width:100%;">
+    <div class="hint">Можно выбрать сразу несколько. PNG / JPG / GIF / WebP / BMP.</div>
+  </div>
+  <button class="btn" onclick="uploadBgFiles()">Загрузить</button>
+</div>
+
+<div class="card" style="margin-top: 12px; background: #f8fafc;">
+  <h2 style="font-size: 15px;">Галерея фонов (<span id="bg-count">0</span>)</h2>
+  <div id="bg-gallery" class="gallery"></div>
+</div>
 
         <button class="btn" onclick="saveSettings()" style="margin-top: 16px;">Сохранить настройки</button>
       </div>
@@ -962,19 +1086,6 @@
     showStatus('Настройки сохранены');
   }
 
-  document.getElementById('set-bg-image').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const fd = new FormData();
-    fd.append('file', file);
-    const r = await fetch('/api/settings/upload-bg', { method: 'POST', body: fd });
-    if (!r.ok) return showStatus('Ошибка загрузки', false);
-    const data = await r.json();
-    const prev = document.getElementById('bg-preview');
-    prev.style.backgroundImage = `url('${mediaUrl(data.filename)}')`;
-    prev.textContent = '';
-    showStatus('Фон загружен');
-  });
 
   async function clearBgImageSettings() {
     await fetch('/api/settings', {
@@ -987,14 +1098,120 @@
     prev.textContent = 'нет изображения';
     showStatus('Фон убран');
   }
+// ============ BIRTHDAY BACKGROUNDS ============
+async function loadBirthdayBackgrounds() {
+  const r = await fetch('/api/birthday-backgrounds');
+  const list = await r.json();
+  document.getElementById('bg-count').textContent = list.length;
+  const gallery = document.getElementById('bg-gallery');
+  if (!list.length) {
+    gallery.innerHTML = '<div class="gallery-empty" style="grid-column: 1/-1;">Фонов нет. Показывается градиент, указанный выше.</div>';
+    return;
+  }
+  gallery.innerHTML = list.map(bg => `
+    <div class="gallery-item">
+      <img src="${mediaUrl(bg.filename)}" alt="">
+      <button class="del-btn" onclick="deleteBirthdayBackground(${bg.id})" title="Удалить">×</button>
+      <div class="fname">${esc(bg.original_name || bg.filename)}</div>
+    </div>
+  `).join('');
+}
 
-  // ==================================================================
-  // ============ DESIGNER (графический редактор объявлений) ==========
-  // ==================================================================
-  const DW = 1920, DH = 1080;
-  const HANDLE_SIZE = 16;
+async function uploadBgFiles() {
+  const files = document.getElementById('set-bg-files').files;
+  if (!files.length) return showStatus('Выберите файлы', false);
+  const fd = new FormData();
+  for (const f of files) fd.append('files', f);
+  const r = await fetch('/api/birthday-backgrounds', { method: 'POST', body: fd });
+  if (!r.ok) return showStatus('Ошибка загрузки', false);
+  const res = await r.json();
+  document.getElementById('set-bg-files').value = '';
+  showStatus(`Загружено фонов: ${res.length}`);
+  loadBirthdayBackgrounds();
+}
 
-  let design = {
+async function deleteBirthdayBackground(id) {
+  if (!confirm('Удалить фоновое изображение?')) return;
+  await fetch('/api/birthday-backgrounds/' + id, { method: 'DELETE' });
+  showStatus('Фон удалён');
+  loadBirthdayBackgrounds();
+}
+
+async function saveBgRotation(mode) {
+  const r = await fetch('/api/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ birthday_bg_rotation: mode })
+  });
+  if (!r.ok) return showStatus('Ошибка сохранения', false);
+  showStatus('Режим ротации обновлён');
+}
+
+async function clearBgImageSettings() {
+  // legacy: заменяется на удаление всех фонов из новой галереи
+  if (!confirm('Удалить ВСЕ фоновые изображения для слайдов с ДР?')) return;
+  const r = await fetch('/api/birthday-backgrounds');
+  const list = await r.json();
+  for (const bg of list) {
+    await fetch('/api/birthday-backgrounds/' + bg.id, { method: 'DELETE' });
+  }
+  showStatus('Все фоны удалены');
+  loadBirthdayBackgrounds();
+}
+// ==================================================================
+// ============ DESIGNER (графический редактор объявлений) ==========
+// ==================================================================
+const DW = 1920, DH = 1080;
+const HANDLE_SIZE = 16;
+const GRID_STEP = 40;
+const HISTORY_MAX = 60;
+const SNAP_TOL = 8;
+
+let design = {
+  background: {
+    type: 'gradient',
+    color: '#0f172a',
+    gradientFrom: '#1e3a8a',
+    gradientTo: '#7c3aed',
+    gradientAngle: 135,
+    image: null,
+    _img: null,
+    filters: defaultFilters(),
+  },
+  objects: [],
+  selectedId: null,
+  nextId: 1,
+};
+
+let gridVisible = false;
+let zoomLevel = 1;
+let clipboard = null;
+let history = [];
+let historyIdx = -1;
+let dragState = null;
+let designerInited = false;
+let lastPropsObjId = null;
+let editingAnnId = null;
+let historyPushTimer = null;
+
+function defaultFilters() {
+  return {
+    brightness: 100, contrast: 100, saturation: 100,
+    blur: 0, grayscale: 0, sepia: 0, hueRotate: 0,
+  };
+}
+function defaultShadow() {
+  return { enabled: false, color: '#000000', blur: 8, offsetX: 4, offsetY: 4 };
+}
+function defaultStroke() {
+  return { enabled: false, color: '#000000', width: 3 };
+}
+function defaultBorder() {
+  return { enabled: false, color: '#ffffff', width: 4, radius: 0 };
+}
+
+function resetDesign() {
+  design = {
     background: {
       type: 'gradient',
       color: '#0f172a',
@@ -1003,794 +1220,1351 @@
       gradientAngle: 135,
       image: null,
       _img: null,
+      filters: defaultFilters(),
     },
     objects: [],
     selectedId: null,
     nextId: 1,
   };
+  clipboard = null;
+  history = [];
+  historyIdx = -1;
+  lastPropsObjId = null;
+}
 
-  let dragState = null;
-  let designerInited = false;
-  let lastPropsObjId = null;
-  let editingAnnId = null;
+// ---------------- HISTORY ----------------
+function snapshot() {
+  return JSON.stringify({
+    background: {
+      type: design.background.type,
+      color: design.background.color,
+      gradientFrom: design.background.gradientFrom,
+      gradientTo: design.background.gradientTo,
+      gradientAngle: design.background.gradientAngle,
+      image: design.background.image,
+      filters: design.background.filters || defaultFilters(),
+    },
+    objects: design.objects.map(o => {
+      const c = { ...o };
+      delete c._img;
+      return c;
+    }),
+    nextId: design.nextId,
+    selectedId: design.selectedId,
+  });
+}
 
-  function resetDesign() {
-    design = {
-      background: {
-        type: 'gradient',
-        color: '#0f172a',
-        gradientFrom: '#1e3a8a',
-        gradientTo: '#7c3aed',
-        gradientAngle: 135,
-        image: null,
-        _img: null,
-      },
-      objects: [],
-      selectedId: null,
-      nextId: 1,
-    };
-    lastPropsObjId = null;
+function pushHistory() {
+  if (historyIdx < history.length - 1) history = history.slice(0, historyIdx + 1);
+  history.push(snapshot());
+  if (history.length > HISTORY_MAX) history.shift();
+  historyIdx = history.length - 1;
+}
+
+function scheduleHistoryPush() {
+  if (historyPushTimer) clearTimeout(historyPushTimer);
+  historyPushTimer = setTimeout(() => { pushHistory(); }, 500);
+}
+
+function restoreSnapshot(str) {
+  let p;
+  try { p = JSON.parse(str); } catch (e) { return; }
+  design.background = {
+    type: p.background?.type || 'solid',
+    color: p.background?.color || '#0f172a',
+    gradientFrom: p.background?.gradientFrom || '#1e3a8a',
+    gradientTo: p.background?.gradientTo || '#7c3aed',
+    gradientAngle: p.background?.gradientAngle ?? 135,
+    image: p.background?.image || null,
+    _img: null,
+    filters: p.background?.filters || defaultFilters(),
+  };
+  if (design.background.type === 'image' && design.background.image) {
+    const img = new Image();
+    img.onload = () => drawDesign();
+    img.src = design.background.image;
+    design.background._img = img;
   }
-
-  function initDesigner() {
-    if (designerInited) return;
-    designerInited = true;
-    const c = document.getElementById('designer-canvas');
-    c.addEventListener('mousedown', onCanvasDown);
-    c.addEventListener('mousemove', onCanvasMove);
-    c.addEventListener('mouseup', onCanvasUp);
-    c.addEventListener('mouseleave', onCanvasUp);
-    document.addEventListener('keydown', onDesignerKey);
-
-    updateBgPanels();
-    refreshDesigner();
-  }
-
-  function onDesignerKey(e) {
-    if (!document.getElementById('tab-designer').classList.contains('active')) return;
-    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
-
-    if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); delSelected(); }
-    else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') { e.preventDefault(); dupSelected(); }
-  }
-
-  const getDesignerCanvas = () => document.getElementById('designer-canvas');
-
-  function toCanvasXY(e) {
-    const c = getDesignerCanvas();
-    const r = c.getBoundingClientRect();
-    return {
-      x: (e.clientX - r.left) * (c.width / r.width),
-      y: (e.clientY - r.top) * (c.height / r.height),
-    };
-  }
-
-  const getObj = (id) => design.objects.find(o => o.id === id);
-
-  function fontStr(o) {
-    return `${o.italic ? 'italic ' : ''}${o.bold ? 'bold ' : ''}${o.fontSize}px ${o.fontFamily || 'Arial'}`;
-  }
-
-  function measureTextObj(o) {
-    const c = getDesignerCanvas();
-    const ctx = c.getContext('2d');
-    ctx.save();
-    ctx.font = fontStr(o);
-    const lines = (o.text || '').split('\n');
-    let w = 0;
-    for (const line of lines) w = Math.max(w, ctx.measureText(line).width);
-    const lh = o.fontSize * (o.lineHeight || 1.2);
-    const h = lines.length * lh;
-    ctx.restore();
-    return { w: Math.max(w, 24), h };
-  }
-
-  function getBBox(o) {
-    if (o.type === 'text') {
-      const m = measureTextObj(o);
-      o.w = m.w; o.h = m.h;
-      return { x: o.x, y: o.y, w: m.w, h: m.h };
-    }
-    return { x: o.x, y: o.y, w: o.w, h: o.h };
-  }
-
-  // ---------- Drawing ----------
-  function roundRect(ctx, x, y, w, h, r) {
-    r = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
-  }
-
-  function drawImageCover(ctx, img, x, y, w, h) {
-    const ir = img.width / img.height, cr = w / h;
-    let sw, sh, sx, sy;
-    if (ir > cr) { sh = img.height; sw = sh * cr; sx = (img.width - sw) / 2; sy = 0; }
-    else { sw = img.width; sh = sw / cr; sx = 0; sy = (img.height - sh) / 2; }
-    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
-  }
-
-  function drawDesign() {
-    const c = getDesignerCanvas();
-    const ctx = c.getContext('2d');
-    ctx.clearRect(0, 0, DW, DH);
-
-    const bg = design.background;
-    if (bg.type === 'solid') {
-      ctx.fillStyle = bg.color || '#0f172a';
-      ctx.fillRect(0, 0, DW, DH);
-    } else if (bg.type === 'gradient') {
-      const a = (bg.gradientAngle || 135) * Math.PI / 180;
-      const cx = DW / 2, cy = DH / 2;
-      const len = Math.max(DW, DH);
-      const x1 = cx - Math.cos(a) * len / 2;
-      const y1 = cy - Math.sin(a) * len / 2;
-      const x2 = cx + Math.cos(a) * len / 2;
-      const y2 = cy + Math.sin(a) * len / 2;
-      const g = ctx.createLinearGradient(x1, y1, x2, y2);
-      g.addColorStop(0, bg.gradientFrom || '#1e3a8a');
-      g.addColorStop(1, bg.gradientTo || '#7c3aed');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, DW, DH);
-    } else if (bg.type === 'image' && bg._img && bg._img.complete) {
-      drawImageCover(ctx, bg._img, 0, 0, DW, DH);
-    } else {
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(0, 0, DW, DH);
-    }
-
-    for (const o of design.objects) drawObj(ctx, o);
-
-    if (design.selectedId) {
-      const o = getObj(design.selectedId);
-      if (o) drawSelection(ctx, o);
-    }
-  }
-
-  function drawObj(ctx, o) {
-    ctx.save();
-    if (o.type === 'text') {
-      ctx.fillStyle = o.color || '#ffffff';
-      ctx.font = fontStr(o);
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      const lines = (o.text || '').split('\n');
-      const lh = o.fontSize * (o.lineHeight || 1.2);
-      lines.forEach((line, i) => ctx.fillText(line, o.x, o.y + i * lh));
-      const m = measureTextObj(o);
-      o.w = m.w; o.h = m.h;
-    } else if (o.type === 'rect') {
-      ctx.globalAlpha = o.opacity ?? 1;
-      ctx.fillStyle = o.fill || '#7c3aed';
-      roundRect(ctx, o.x, o.y, o.w, o.h, o.radius || 0);
-      ctx.fill();
-    } else if (o.type === 'image' && o._img && o._img.complete) {
-      ctx.globalAlpha = o.opacity ?? 1;
-      ctx.drawImage(o._img, o.x, o.y, o.w, o.h);
-    }
-    ctx.restore();
-  }
-
-  function drawSelection(ctx, o) {
-    ctx.save();
-    ctx.strokeStyle = '#3b82f6';
-    ctx.lineWidth = 3;
-    ctx.setLineDash([10, 6]);
-    ctx.strokeRect(o.x - 2, o.y - 2, o.w + 4, o.h + 4);
-    ctx.setLineDash([]);
-
-    if (o.type !== 'text') {
-      const hs = HANDLE_SIZE;
-      const handles = getHandleRects(o);
-      ctx.fillStyle = '#fff';
-      ctx.strokeStyle = '#3b82f6';
-      ctx.lineWidth = 2;
-      for (const h of Object.values(handles)) {
-        ctx.fillRect(h.x, h.y, hs, hs);
-        ctx.strokeRect(h.x, h.y, hs, hs);
-      }
-    }
-    ctx.restore();
-  }
-
-  function getHandleRects(o) {
-    const hs = HANDLE_SIZE, h2 = hs / 2;
-    const x1 = o.x, y1 = o.y, x2 = o.x + o.w, y2 = o.y + o.h;
-    const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
-    return {
-      nw: { x: x1 - h2, y: y1 - h2 },
-      n:  { x: cx - h2, y: y1 - h2 },
-      ne: { x: x2 - h2, y: y1 - h2 },
-      w:  { x: x1 - h2, y: cy - h2 },
-      e:  { x: x2 - h2, y: cy - h2 },
-      sw: { x: x1 - h2, y: y2 - h2 },
-      s:  { x: cx - h2, y: y2 - h2 },
-      se: { x: x2 - h2, y: y2 - h2 },
-    };
-  }
-
-  function hitHandle(o, x, y) {
-    if (o.type === 'text') return null;
-    const hs = HANDLE_SIZE;
-    const handles = getHandleRects(o);
-    for (const [name, r] of Object.entries(handles)) {
-      if (x >= r.x - 4 && x <= r.x + hs + 4 && y >= r.y - 4 && y <= r.y + hs + 4) {
-        return name;
-      }
-    }
-    return null;
-  }
-
-  function hitTest(x, y) {
-    for (let i = design.objects.length - 1; i >= 0; i--) {
-      const o = design.objects[i];
-      const b = getBBox(o);
-      if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return o;
-    }
-    return null;
-  }
-
-  // ---------- Mouse ----------
-  function onCanvasDown(e) {
-    const { x, y } = toCanvasXY(e);
-    const sel = design.selectedId ? getObj(design.selectedId) : null;
-    if (sel) {
-      const h = hitHandle(sel, x, y);
-      if (h) {
-        dragState = {
-          mode: 'resize', handle: h,
-          startX: x, startY: y,
-          os: { x: sel.x, y: sel.y, w: sel.w, h: sel.h },
-        };
-        return;
-      }
-    }
-    const hit = hitTest(x, y);
-    if (hit) {
-      design.selectedId = hit.id;
-      dragState = {
-        mode: 'move',
-        startX: x, startY: y,
-        os: { x: hit.x, y: hit.y },
-      };
-    } else {
-      design.selectedId = null;
-      dragState = null;
-    }
-    refreshDesigner();
-  }
-
-  function onCanvasMove(e) {
-    const c = getDesignerCanvas();
-    const { x, y } = toCanvasXY(e);
-
-    if (!dragState) {
-      let cursor = 'default';
-      const sel = design.selectedId ? getObj(design.selectedId) : null;
-      if (sel && hitHandle(sel, x, y)) {
-        cursor = 'nwse-resize';
-      } else if (hitTest(x, y)) {
-        cursor = 'move';
-      }
-      c.style.cursor = cursor;
-      return;
-    }
-
-    const o = getObj(design.selectedId);
-    if (!o) return;
-    const dx = x - dragState.startX;
-    const dy = y - dragState.startY;
-
-    if (dragState.mode === 'move') {
-      o.x = Math.round(dragState.os.x + dx);
-      o.y = Math.round(dragState.os.y + dy);
-    } else if (dragState.mode === 'resize') {
-      const os = dragState.os;
-      let x1 = os.x, y1 = os.y, x2 = os.x + os.w, y2 = os.y + os.h;
-      const h = dragState.handle;
-      if (h.includes('n')) y1 = os.y + dy;
-      if (h.includes('s')) y2 = os.y + os.h + dy;
-      if (h.includes('w')) x1 = os.x + dx;
-      if (h.includes('e')) x2 = os.x + os.w + dx;
-      if (x2 - x1 < 20) x2 = x1 + 20;
-      if (y2 - y1 < 20) y2 = y1 + 20;
-      o.x = Math.round(x1);
-      o.y = Math.round(y1);
-      o.w = Math.round(x2 - x1);
-      o.h = Math.round(y2 - y1);
-    }
-
-    renderPropsValues();
-    drawDesign();
-  }
-
-  function onCanvasUp() { dragState = null; }
-
-  // ---------- Toolbar actions ----------
-  function addTextObj() {
-    const o = {
-      id: design.nextId++,
-      type: 'text',
-      x: 160, y: 440,
-      w: 800, h: 120,
-      text: 'Новый текст',
-      fontSize: 140,
-      fontFamily: 'Arial',
-      color: '#ffffff',
-      bold: true,
-      italic: false,
-      lineHeight: 1.15,
-    };
-    design.objects.push(o);
-    design.selectedId = o.id;
-    refreshDesigner();
-  }
-
-  function addRectObj() {
-    const o = {
-      id: design.nextId++,
-      type: 'rect',
-      x: 400, y: 300,
-      w: 600, h: 300,
-      fill: '#7c3aed',
-      radius: 24,
-      opacity: 0.85,
-    };
-    design.objects.push(o);
-    design.selectedId = o.id;
-    refreshDesigner();
-  }
-
-  function addImageObj(input) {
-    const f = input.files[0];
-    input.value = '';
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const maxW = 1200;
-        const ratio = img.width / img.height;
-        let w = Math.min(img.width, maxW);
-        let h = w / ratio;
-        const o = {
-          id: design.nextId++,
-          type: 'image',
-          x: Math.round((DW - w) / 2),
-          y: Math.round((DH - h) / 2),
-          w: Math.round(w),
-          h: Math.round(h),
-          opacity: 1,
-          src: reader.result,
-          _img: img,
-        };
-        design.objects.push(o);
-        design.selectedId = o.id;
-        refreshDesigner();
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(f);
-  }
-
-  function delSelected() {
-    if (!design.selectedId) return;
-    design.objects = design.objects.filter(o => o.id !== design.selectedId);
-    design.selectedId = null;
-    refreshDesigner();
-  }
-
-  function dupSelected() {
-    const o = getObj(design.selectedId);
-    if (!o) return;
-    const clean = { ...o };
-    delete clean._img;
-    clean.id = design.nextId++;
-    clean.x += 40; clean.y += 40;
-    clean._img = o._img;
-    design.objects.push(clean);
-    design.selectedId = clean.id;
-    refreshDesigner();
-  }
-
-  function bringForward() {
-    const i = design.objects.findIndex(o => o.id === design.selectedId);
-    if (i < 0 || i === design.objects.length - 1) return;
-    [design.objects[i], design.objects[i + 1]] = [design.objects[i + 1], design.objects[i]];
-    refreshDesigner();
-  }
-
-  function sendBackward() {
-    const i = design.objects.findIndex(o => o.id === design.selectedId);
-    if (i <= 0) return;
-    [design.objects[i], design.objects[i - 1]] = [design.objects[i - 1], design.objects[i]];
-    refreshDesigner();
-  }
-
-  function refreshDesigner() {
-    renderLayers();
-    renderProps(true);
-    drawDesign();
-  }
-
-  // ---------- Background ----------
-  function setBgType(t) {
-    design.background.type = t;
-    updateBgPanels();
-    drawDesign();
-  }
-
-  function updateBgPanels() {
-    const t = design.background.type;
-    document.querySelectorAll('input[name="bg-type"]').forEach(r => { r.checked = r.value === t; });
-    document.getElementById('bg-solid-panel').style.display = t === 'solid' ? 'block' : 'none';
-    document.getElementById('bg-gradient-panel').style.display = t === 'gradient' ? 'block' : 'none';
-    document.getElementById('bg-image-panel').style.display = t === 'image' ? 'block' : 'none';
-
-    document.getElementById('bg-color').value = design.background.color || '#0f172a';
-    document.getElementById('bg-grad-from').value = design.background.gradientFrom || '#1e3a8a';
-    document.getElementById('bg-grad-to').value = design.background.gradientTo || '#7c3aed';
-    document.getElementById('bg-grad-angle').value = design.background.gradientAngle || 135;
-  }
-
-  function onBgChange() {
-    design.background.color = document.getElementById('bg-color').value;
-    design.background.gradientFrom = document.getElementById('bg-grad-from').value;
-    design.background.gradientTo = document.getElementById('bg-grad-to').value;
-    design.background.gradientAngle = +document.getElementById('bg-grad-angle').value || 135;
-    drawDesign();
-  }
-
-  function setBgImage(input) {
-    const f = input.files[0];
-    input.value = '';
-    if (!f) return;
-    const r = new FileReader();
-    r.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        design.background.image = r.result;
-        design.background._img = img;
-        design.background.type = 'image';
-        updateBgPanels();
-        drawDesign();
-      };
-      img.src = r.result;
-    };
-    r.readAsDataURL(f);
-  }
-
-  function clearBgImage() {
-    design.background.image = null;
-    design.background._img = null;
-    drawDesign();
-  }
-
-  // ---------- Layers ----------
-  function renderLayers() {
-    const el = document.getElementById('layers-container');
-    if (!design.objects.length) {
-      el.innerHTML = '<div class="props-empty">Пока нет объектов.<br>Добавьте текст, картинку или прямоугольник.</div>';
-      return;
-    }
-    const reversed = [...design.objects].reverse();
-    el.innerHTML = reversed.map(o => {
-      const icon = o.type === 'text' ? '🔤' : o.type === 'rect' ? '⬛' : '🖼️';
-      const name = o.type === 'text'
-        ? ((o.text || '').split('\n')[0] || 'Текст').slice(0, 30)
-        : o.type === 'rect' ? 'Прямоугольник' : 'Картинка';
-      const sel = o.id === design.selectedId ? ' sel' : '';
-      return `<div class="layer-item${sel}" onclick="selectLayer(${o.id})">
-        <span class="icn">${icon}</span><span class="nm">${esc(name)}</span>
-      </div>`;
-    }).join('');
-  }
-
-  function selectLayer(id) {
-    design.selectedId = id;
-    refreshDesigner();
-  }
-
-  // ---------- Props panel ----------
-  function renderProps(force) {
-    const el = document.getElementById('props-container');
-    const typeLbl = document.getElementById('props-type');
-    const o = design.selectedId ? getObj(design.selectedId) : null;
-    const id = o ? o.id : null;
-
-    if (!force && id === lastPropsObjId) {
-      renderPropsValues();
-      return;
-    }
-    lastPropsObjId = id;
-
-    if (!o) {
-      typeLbl.textContent = '';
-      el.innerHTML = '<div class="props-empty">Объект не выбран.<br>Кликните объект на холсте или в списке слоёв.</div>';
-      return;
-    }
-    typeLbl.textContent = o.type === 'text' ? '· текст' : o.type === 'rect' ? '· прямоугольник' : '· картинка';
-
-    let html = '';
-    html += `<div class="row2">
-      <div><label>X</label><input type="number" data-prop="x" oninput="updPropNum('x', this)"></div>
-      <div><label>Y</label><input type="number" data-prop="y" oninput="updPropNum('y', this)"></div>
-    </div>`;
-
-    if (o.type === 'text') {
-      html += `<label>Текст</label>
-        <textarea data-prop="text" oninput="updProp('text', this.value)"></textarea>
-        <div class="row2">
-          <div><label>Размер</label><input type="number" data-prop="fontSize" oninput="updPropNum('fontSize', this)"></div>
-          <div><label>Межстрочный</label><input type="number" step="0.05" data-prop="lineHeight" oninput="updPropNum('lineHeight', this)"></div>
-        </div>
-        <label>Шрифт</label>
-        <select data-prop="fontFamily" onchange="updProp('fontFamily', this.value)">
-          ${['Arial','Georgia','Verdana','Tahoma','Times New Roman','Courier New','Impact'].map(f =>
-            `<option value="${f}">${f}</option>`).join('')}
-        </select>
-        <label>Цвет</label>
-        <input type="color" data-prop="color" oninput="updProp('color', this.value)">
-        <div class="row2" style="margin-top:8px;">
-          <label class="inline"><input type="checkbox" data-prop="bold" onchange="updProp('bold', this.checked)"> Жирный</label>
-          <label class="inline"><input type="checkbox" data-prop="italic" onchange="updProp('italic', this.checked)"> Курсив</label>
-        </div>`;
-    } else if (o.type === 'rect') {
-      html += `<div class="row2">
-        <div><label>Ширина</label><input type="number" data-prop="w" oninput="updPropNum('w', this)"></div>
-        <div><label>Высота</label><input type="number" data-prop="h" oninput="updPropNum('h', this)"></div>
-      </div>
-      <label>Цвет заливки</label>
-      <input type="color" data-prop="fill" oninput="updProp('fill', this.value)">
-      <div class="row2">
-        <div><label>Радиус</label><input type="number" data-prop="radius" oninput="updPropNum('radius', this)"></div>
-        <div><label>Прозрачность</label><input type="number" step="0.1" min="0" max="1" data-prop="opacity" oninput="updPropNum('opacity', this)"></div>
-      </div>`;
-    } else if (o.type === 'image') {
-      html += `<div class="row2">
-        <div><label>Ширина</label><input type="number" data-prop="w" oninput="updPropNum('w', this)"></div>
-        <div><label>Высота</label><input type="number" data-prop="h" oninput="updPropNum('h', this)"></div>
-      </div>
-      <label>Прозрачность</label>
-      <input type="number" step="0.1" min="0" max="1" data-prop="opacity" oninput="updPropNum('opacity', this)">
-      <label class="inline" style="margin-top:8px;"><input type="checkbox" data-prop="_lockAspect" onchange="updProp('_lockAspect', this.checked)"> Сохранять пропорции</label>`;
-    }
-
-    el.innerHTML = html;
-    renderPropsValues();
-  }
-
-  function renderPropsValues() {
-    const o = design.selectedId ? getObj(design.selectedId) : null;
-    if (!o) return;
-    document.querySelectorAll('#props-container [data-prop]').forEach(el => {
-      const k = el.dataset.prop;
-      const v = o[k];
-      if (el.type === 'checkbox') el.checked = !!v;
-      else if (el.type === 'color') el.value = v || '#000000';
-      else if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT' || el.tagName === 'SELECT') {
-        if (document.activeElement !== el) el.value = v ?? '';
-      }
-    });
-  }
-
-  function updProp(key, value) {
-    const o = getObj(design.selectedId);
-    if (!o) return;
-    if (o.type === 'image' && (key === 'w' || key === 'h') && o._lockAspect && o._img) {
-      const ratio = o._img.width / o._img.height;
-      if (key === 'w') { o.w = value; o.h = Math.round(value / ratio); }
-      else { o.h = value; o.w = Math.round(value * ratio); }
-    } else {
-      o[key] = value;
-    }
-    drawDesign();
-    renderLayers();
-    renderPropsValues();
-  }
-
-  function updPropNum(key, input) {
-    const v = input.value.trim();
-    if (v === '') return;
-    const n = Number(v);
-    if (Number.isNaN(n)) return;
-    updProp(key, n);
-  }
-
-  // ---------- Export / Editing ----------
-  function openDesignerNew() {
-    if (design.objects.length && !confirm('Текущий дизайн будет очищен. Продолжить?')) return;
-    resetDesign();
-    editingAnnId = null;
-    updateEditingInfo();
-    initDesigner();
-    updateBgPanels();
-    refreshDesigner();
-    document.querySelector('nav button[data-tab="designer"]').click();
-  }
-
-  async function openDesignerExisting(annId) {
-    const r = await fetch(`/api/announcements/${annId}/design`);
-    if (!r.ok) return showStatus('Не удалось загрузить дизайн', false);
-    const data = await r.json();
-    if (!data.design_json) {
-      return showStatus('У этого объявления нет сохранённого дизайна', false);
-    }
-    let parsed;
-    try { parsed = JSON.parse(data.design_json); }
-    catch (e) { return showStatus('Некорректный дизайн', false); }
-
-    resetDesign();
-    design.background = {
-      type: parsed.background?.type || 'solid',
-      color: parsed.background?.color || '#0f172a',
-      gradientFrom: parsed.background?.gradientFrom || '#1e3a8a',
-      gradientTo: parsed.background?.gradientTo || '#7c3aed',
-      gradientAngle: parsed.background?.gradientAngle ?? 135,
-      image: parsed.background?.image || null,
-      _img: null,
-    };
-    design.nextId = parsed.nextId || 1;
-    design.objects = [];
-
-    for (const src of (parsed.objects || [])) {
-      const o = { ...src };
-      if (o.type === 'image' && o.src) {
-        const img = new Image();
-        img.onload = () => drawDesign();
-        img.src = o.src;
-        o._img = img;
-      }
-      design.objects.push(o);
-      if (o.id >= design.nextId) design.nextId = o.id + 1;
-    }
-
-    if (design.background.type === 'image' && design.background.image) {
+  design.objects = [];
+  design.nextId = p.nextId || 1;
+  for (const src of (p.objects || [])) {
+    const o = { ...src };
+    if (o.type === 'image' && o.src) {
       const img = new Image();
       img.onload = () => drawDesign();
-      img.src = design.background.image;
-      design.background._img = img;
+      img.src = o.src;
+      o._img = img;
     }
-
-    const list = await fetch('/api/announcements').then(r => r.json());
-    const cur = list.find(a => a.id === annId);
-    if (cur) {
-      document.getElementById('designer-from').value = cur.date_from;
-      document.getElementById('designer-to').value = cur.date_to;
-    }
-
-    editingAnnId = annId;
-    updateEditingInfo();
-    initDesigner();
-    updateBgPanels();
-    refreshDesigner();
-    document.querySelector('nav button[data-tab="designer"]').click();
-    showStatus('Дизайн загружен');
+    design.objects.push(o);
+    if (o.id >= design.nextId) design.nextId = o.id + 1;
   }
+  design.selectedId = p.selectedId ?? null;
+}
 
-  function updateEditingInfo() {
-    const info = document.getElementById('designer-editing-info');
-    const badge = document.getElementById('designer-editing-badge');
-    const saveBtn = document.getElementById('designer-save-btn');
-    if (editingAnnId) {
-      info.innerHTML = `<span class="editing-badge">✏️ Редактирование объявления #${editingAnnId} <button onclick="cancelEditing()" title="Отменить редактирование">×</button></span>`;
-      badge.innerHTML = '';
-      saveBtn.textContent = '💾 Обновить объявление';
+function undo() {
+  if (historyIdx <= 0) return;
+  historyIdx--;
+  restoreSnapshot(history[historyIdx]);
+  updateBgPanels();
+  refreshDesigner();
+}
+function redo() {
+  if (historyIdx >= history.length - 1) return;
+  historyIdx++;
+  restoreSnapshot(history[historyIdx]);
+  updateBgPanels();
+  refreshDesigner();
+}
+
+// ---------------- INIT ----------------
+function initDesigner() {
+  if (designerInited) return;
+  designerInited = true;
+  const c = getDesignerCanvas();
+  c.addEventListener('mousedown', onCanvasDown);
+  c.addEventListener('mousemove', onCanvasMove);
+  c.addEventListener('mouseup', onCanvasUp);
+  c.addEventListener('mouseleave', onCanvasUp);
+  document.addEventListener('keydown', onDesignerKey);
+  updateBgPanels();
+  updateZoomLabel();
+  refreshDesigner();
+  pushHistory();
+}
+
+function onDesignerKey(e) {
+  if (!document.getElementById('tab-designer').classList.contains('active')) return;
+  const ctrl = e.ctrlKey || e.metaKey;
+  const k = e.key.toLowerCase();
+  const inField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName);
+
+  if (ctrl && k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+  if (ctrl && (k === 'y' || (k === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return; }
+  if (ctrl && k === 'd') { e.preventDefault(); dupSelected(); return; }
+  if (ctrl && k === 'c' && !inField) { e.preventDefault(); copySelected(); return; }
+  if (ctrl && k === 'v' && !inField) { e.preventDefault(); pasteClipboard(); return; }
+
+  if (inField) return;
+
+  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); delSelected(); }
+  else if (e.key === 'Escape') { design.selectedId = null; refreshDesigner(); }
+  else if (e.key === 'ArrowLeft'  && design.selectedId) { nudge(-1, 0, e.shiftKey); e.preventDefault(); }
+  else if (e.key === 'ArrowRight' && design.selectedId) { nudge(1, 0, e.shiftKey);  e.preventDefault(); }
+  else if (e.key === 'ArrowUp'    && design.selectedId) { nudge(0, -1, e.shiftKey); e.preventDefault(); }
+  else if (e.key === 'ArrowDown'  && design.selectedId) { nudge(0, 1, e.shiftKey);  e.preventDefault(); }
+}
+
+function nudge(dx, dy, big) {
+  const o = getObj(design.selectedId);
+  if (!o || o.locked) return;
+  const m = big ? 10 : 1;
+  o.x += dx * m;
+  o.y += dy * m;
+  drawDesign();
+  renderPropsValues();
+  scheduleHistoryPush();
+}
+
+const getDesignerCanvas = () => document.getElementById('designer-canvas');
+
+function toCanvasXY(e) {
+  const c = getDesignerCanvas();
+  const r = c.getBoundingClientRect();
+  return {
+    x: (e.clientX - r.left) * (c.width / r.width),
+    y: (e.clientY - r.top) * (c.height / r.height),
+  };
+}
+const getObj = (id) => design.objects.find(o => o.id === id);
+
+// ---------------- ZOOM / GRID ----------------
+function updateZoomLabel() {
+  const el = document.getElementById('zoom-label');
+  if (el) el.textContent = Math.round(zoomLevel * 100) + '%';
+  const wrap = document.querySelector('.designer-canvas-wrap');
+  if (wrap) wrap.style.maxWidth = (zoomLevel <= 1 ? '100%' : (100 / zoomLevel) + '%');
+}
+function zoomIn()    { zoomLevel = Math.min(2,   zoomLevel + 0.1); updateZoomLabel(); }
+function zoomOut()   { zoomLevel = Math.max(0.4, zoomLevel - 0.1); updateZoomLabel(); }
+function zoomReset() { zoomLevel = 1; updateZoomLabel(); }
+
+function toggleGrid() {
+  gridVisible = !gridVisible;
+  const btn = document.getElementById('toggle-grid-btn');
+  if (btn) btn.classList.toggle('active', gridVisible);
+  drawDesign();
+}
+
+// ---------------- FILTERS ----------------
+function filtersToCss(f) {
+  if (!f) return 'none';
+  const parts = [];
+  if (f.brightness !== 100) parts.push(`brightness(${f.brightness}%)`);
+  if (f.contrast   !== 100) parts.push(`contrast(${f.contrast}%)`);
+  if (f.saturation !== 100) parts.push(`saturate(${f.saturation}%)`);
+  if (f.blur > 0)           parts.push(`blur(${f.blur}px)`);
+  if (f.grayscale > 0)      parts.push(`grayscale(${f.grayscale}%)`);
+  if (f.sepia > 0)          parts.push(`sepia(${f.sepia}%)`);
+  if (f.hueRotate !== 0)    parts.push(`hue-rotate(${f.hueRotate}deg)`);
+  return parts.length ? parts.join(' ') : 'none';
+}
+
+// ---------------- FONTS ----------------
+function fontStr(o) {
+  return `${o.italic ? 'italic ' : ''}${o.bold ? 'bold ' : ''}${o.fontSize}px ${o.fontFamily || 'Arial'}`;
+}
+
+function measureTextObj(o) {
+  const c = getDesignerCanvas();
+  const ctx = c.getContext('2d');
+  ctx.save();
+  ctx.font = fontStr(o);
+  if ('letterSpacing' in ctx) ctx.letterSpacing = (o.letterSpacing || 0) + 'px';
+  const lines = (o.text || '').split('\n');
+  let w = 0;
+  for (const line of lines) w = Math.max(w, ctx.measureText(line).width);
+  const lh = o.fontSize * (o.lineHeight || 1.2);
+  const h = lines.length * lh;
+  ctx.restore();
+  return { w: Math.max(w, 24), h };
+}
+
+function getBBox(o) {
+  if (o.type === 'text') {
+    const m = measureTextObj(o);
+    o.w = m.w; o.h = m.h;
+    return { x: o.x, y: o.y, w: m.w, h: m.h };
+  }
+  return { x: o.x, y: o.y, w: o.w, h: o.h };
+}
+
+// ---------------- DRAW ----------------
+function roundRect(ctx, x, y, w, h, r) {
+  r = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+  if (r <= 0) { ctx.rect(x, y, w, h); return; }
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawImageCover(ctx, img, x, y, w, h) {
+  const ir = img.width / img.height, cr = w / h;
+  let sw, sh, sx, sy;
+  if (ir > cr) { sh = img.height; sw = sh * cr; sx = (img.width - sw) / 2; sy = 0; }
+  else { sw = img.width; sh = sw / cr; sx = 0; sy = (img.height - sh) / 2; }
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+}
+
+function drawGrid(ctx) {
+  if (!gridVisible) return;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = 0; x <= DW; x += GRID_STEP) { ctx.moveTo(x, 0); ctx.lineTo(x, DH); }
+  for (let y = 0; y <= DH; y += GRID_STEP) { ctx.moveTo(0, y); ctx.lineTo(DW, y); }
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+  ctx.beginPath();
+  ctx.moveTo(DW / 2, 0); ctx.lineTo(DW / 2, DH);
+  ctx.moveTo(0, DH / 2); ctx.lineTo(DW, DH / 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawDesign() {
+  const c = getDesignerCanvas();
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, DW, DH);
+
+  const bg = design.background;
+  ctx.save();
+  if (bg.type === 'solid') {
+    ctx.fillStyle = bg.color || '#0f172a';
+    ctx.fillRect(0, 0, DW, DH);
+  } else if (bg.type === 'gradient') {
+    const a = (bg.gradientAngle || 135) * Math.PI / 180;
+    const cx = DW / 2, cy = DH / 2;
+    const len = Math.max(DW, DH);
+    const x1 = cx - Math.cos(a) * len / 2;
+    const y1 = cy - Math.sin(a) * len / 2;
+    const x2 = cx + Math.cos(a) * len / 2;
+    const y2 = cy + Math.sin(a) * len / 2;
+    const g = ctx.createLinearGradient(x1, y1, x2, y2);
+    g.addColorStop(0, bg.gradientFrom || '#1e3a8a');
+    g.addColorStop(1, bg.gradientTo || '#7c3aed');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, DW, DH);
+  } else if (bg.type === 'image' && bg._img && bg._img.complete) {
+    if (bg.filters) ctx.filter = filtersToCss(bg.filters);
+    drawImageCover(ctx, bg._img, 0, 0, DW, DH);
+    ctx.filter = 'none';
+  } else {
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, DW, DH);
+  }
+  ctx.restore();
+
+  for (const o of design.objects) drawObj(ctx, o);
+  drawGrid(ctx);
+
+  if (design.selectedId) {
+    const o = getObj(design.selectedId);
+    if (o) drawSelection(ctx, o);
+  }
+}
+
+function drawObj(ctx, o) {
+  ctx.save();
+  ctx.globalAlpha = o.opacity ?? 1;
+
+  if (o.type === 'text') {
+    ctx.font = fontStr(o);
+    if ('letterSpacing' in ctx) ctx.letterSpacing = (o.letterSpacing || 0) + 'px';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+
+    const m = measureTextObj(o);
+    o.w = m.w; o.h = m.h;
+    const lines = (o.text || '').split('\n');
+    const lh = o.fontSize * (o.lineHeight || 1.2);
+    const boxW = o.w;
+
+    if (o.shadow && o.shadow.enabled) {
+      ctx.shadowColor = o.shadow.color || '#000000';
+      ctx.shadowBlur = o.shadow.blur || 0;
+      ctx.shadowOffsetX = o.shadow.offsetX || 0;
+      ctx.shadowOffsetY = o.shadow.offsetY || 0;
+    }
+
+    lines.forEach((line, i) => {
+      let tx = o.x;
+      const lw = ctx.measureText(line).width;
+      if (o.align === 'center') tx = o.x + (boxW - lw) / 2;
+      else if (o.align === 'right') tx = o.x + (boxW - lw);
+      const ty = o.y + i * lh;
+
+      if (o.stroke && o.stroke.enabled) {
+        ctx.lineWidth = o.stroke.width || 2;
+        ctx.strokeStyle = o.stroke.color || '#000000';
+        ctx.lineJoin = 'round';
+        ctx.strokeText(line, tx, ty);
+      }
+      ctx.fillStyle = o.color || '#ffffff';
+      ctx.fillText(line, tx, ty);
+    });
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+
+  } else if (o.type === 'rect') {
+    if (o.border && o.border.enabled && o.border.width > 0) {
+      roundRect(ctx, o.x, o.y, o.w, o.h, o.radius || 0);
+      ctx.fillStyle = o.border.color || '#ffffff';
+      ctx.fill();
+      const bw = o.border.width;
+      roundRect(ctx, o.x + bw, o.y + bw, Math.max(0, o.w - bw * 2), Math.max(0, o.h - bw * 2),
+                Math.max(0, (o.radius || 0) - bw));
+      ctx.fillStyle = o.fill || '#7c3aed';
+      ctx.fill();
     } else {
-      info.textContent = 'Новое объявление';
-      badge.innerHTML = '';
-      saveBtn.textContent = '💾 Сохранить как объявление';
+      roundRect(ctx, o.x, o.y, o.w, o.h, o.radius || 0);
+      ctx.fillStyle = o.fill || '#7c3aed';
+      ctx.fill();
+    }
+
+  } else if (o.type === 'circle') {
+    const cx = o.x + o.w / 2, cy = o.y + o.h / 2;
+    const rx = o.w / 2, ry = o.h / 2;
+    if (o.border && o.border.enabled && o.border.width > 0) {
+      ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.closePath();
+      ctx.fillStyle = o.border.color || '#ffffff';
+      ctx.fill();
+      const bw = o.border.width;
+      const irx = Math.max(0, rx - bw), iry = Math.max(0, ry - bw);
+      if (irx > 0 && iry > 0) {
+        ctx.beginPath(); ctx.ellipse(cx, cy, irx, iry, 0, 0, Math.PI * 2); ctx.closePath();
+        ctx.fillStyle = o.fill || '#7c3aed';
+        ctx.fill();
+      }
+    } else {
+      ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.closePath();
+      ctx.fillStyle = o.fill || '#7c3aed';
+      ctx.fill();
+    }
+
+  } else if (o.type === 'line') {
+    ctx.fillStyle = o.fill || '#ffffff';
+    ctx.fillRect(o.x, o.y, o.w, Math.max(2, o.h));
+
+  } else if (o.type === 'image' && o._img && o._img.complete) {
+    if (o.filters) ctx.filter = filtersToCss(o.filters);
+    if (o.border && o.border.enabled && o.border.width > 0) {
+      roundRect(ctx, o.x, o.y, o.w, o.h, o.border.radius || 0);
+      ctx.fillStyle = o.border.color || '#ffffff';
+      ctx.fill();
+      const bw = o.border.width;
+      ctx.save();
+      roundRect(ctx, o.x + bw, o.y + bw, Math.max(0, o.w - bw * 2), Math.max(0, o.h - bw * 2),
+                Math.max(0, (o.border.radius || 0) - bw));
+      ctx.clip();
+      ctx.drawImage(o._img, o.x + bw, o.y + bw, Math.max(0, o.w - bw * 2), Math.max(0, o.h - bw * 2));
+      ctx.restore();
+    } else {
+      ctx.drawImage(o._img, o.x, o.y, o.w, o.h);
+    }
+    ctx.filter = 'none';
+  }
+
+  ctx.restore();
+}
+
+function drawSelection(ctx, o) {
+  ctx.save();
+  ctx.strokeStyle = o.locked ? '#f59e0b' : '#3b82f6';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([10, 6]);
+  ctx.strokeRect(o.x - 2, o.y - 2, o.w + 4, o.h + 4);
+  ctx.setLineDash([]);
+  if (o.type !== 'text' && !o.locked) {
+    const hs = HANDLE_SIZE;
+    const handles = getHandleRects(o);
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 2;
+    for (const h of Object.values(handles)) {
+      ctx.fillRect(h.x, h.y, hs, hs);
+      ctx.strokeRect(h.x, h.y, hs, hs);
+    }
+  }
+  ctx.restore();
+}
+
+function getHandleRects(o) {
+  const hs = HANDLE_SIZE, h2 = hs / 2;
+  const x1 = o.x, y1 = o.y, x2 = o.x + o.w, y2 = o.y + o.h;
+  const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+  return {
+    nw: { x: x1 - h2, y: y1 - h2 },
+    n:  { x: cx - h2, y: y1 - h2 },
+    ne: { x: x2 - h2, y: y1 - h2 },
+    w:  { x: x1 - h2, y: cy - h2 },
+    e:  { x: x2 - h2, y: cy - h2 },
+    sw: { x: x1 - h2, y: y2 - h2 },
+    s:  { x: cx - h2, y: y2 - h2 },
+    se: { x: x2 - h2, y: y2 - h2 },
+  };
+}
+
+function hitHandle(o, x, y) {
+  if (o.type === 'text' || o.locked) return null;
+  const hs = HANDLE_SIZE;
+  const handles = getHandleRects(o);
+  for (const [name, r] of Object.entries(handles)) {
+    if (x >= r.x - 4 && x <= r.x + hs + 4 && y >= r.y - 4 && y <= r.y + hs + 4) return name;
+  }
+  return null;
+}
+
+function hitTest(x, y) {
+  for (let i = design.objects.length - 1; i >= 0; i--) {
+    const o = design.objects[i];
+    const b = getBBox(o);
+    if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return o;
+  }
+  return null;
+}
+
+// ---------------- MOUSE ----------------
+function onCanvasDown(e) {
+  const { x, y } = toCanvasXY(e);
+  const sel = design.selectedId ? getObj(design.selectedId) : null;
+  if (sel && !sel.locked) {
+    const h = hitHandle(sel, x, y);
+    if (h) {
+      dragState = { mode: 'resize', handle: h, startX: x, startY: y,
+                    os: { x: sel.x, y: sel.y, w: sel.w, h: sel.h }, moved: false };
+      return;
+    }
+  }
+  const hit = hitTest(x, y);
+  if (hit) {
+    design.selectedId = hit.id;
+    if (!hit.locked) {
+      dragState = { mode: 'move', startX: x, startY: y,
+                    os: { x: hit.x, y: hit.y }, moved: false };
+    } else {
+      dragState = null;
+    }
+  } else {
+    design.selectedId = null;
+    dragState = null;
+  }
+  refreshDesigner();
+}
+
+function onCanvasMove(e) {
+  const c = getDesignerCanvas();
+  const { x, y } = toCanvasXY(e);
+
+  if (!dragState) {
+    let cursor = 'default';
+    const sel = design.selectedId ? getObj(design.selectedId) : null;
+    if (sel && !sel.locked && hitHandle(sel, x, y)) cursor = 'nwse-resize';
+    else if (hitTest(x, y)) cursor = 'move';
+    c.style.cursor = cursor;
+    return;
+  }
+
+  const o = getObj(design.selectedId);
+  if (!o || o.locked) return;
+  const dx = x - dragState.startX;
+  const dy = y - dragState.startY;
+  dragState.moved = true;
+
+  if (dragState.mode === 'move') {
+    let nx = Math.round(dragState.os.x + dx);
+    let ny = Math.round(dragState.os.y + dy);
+    if (gridVisible) {
+      nx = Math.round(nx / GRID_STEP) * GRID_STEP;
+      ny = Math.round(ny / GRID_STEP) * GRID_STEP;
+    } else {
+      if (Math.abs(nx + o.w / 2 - DW / 2) < SNAP_TOL) nx = DW / 2 - o.w / 2;
+      if (Math.abs(ny + o.h / 2 - DH / 2) < SNAP_TOL) ny = DH / 2 - o.h / 2;
+      if (Math.abs(nx) < SNAP_TOL) nx = 0;
+      if (Math.abs(ny) < SNAP_TOL) ny = 0;
+      if (Math.abs(nx + o.w - DW) < SNAP_TOL) nx = DW - o.w;
+      if (Math.abs(ny + o.h - DH) < SNAP_TOL) ny = DH - o.h;
+    }
+    o.x = nx;
+    o.y = ny;
+  } else if (dragState.mode === 'resize') {
+    const os = dragState.os;
+    let x1 = os.x, y1 = os.y, x2 = os.x + os.w, y2 = os.y + os.h;
+    const h = dragState.handle;
+    if (h.includes('n')) y1 = os.y + dy;
+    if (h.includes('s')) y2 = os.y + os.h + dy;
+    if (h.includes('w')) x1 = os.x + dx;
+    if (h.includes('e')) x2 = os.x + os.w + dx;
+    if (x2 - x1 < 20) x2 = x1 + 20;
+    if (y2 - y1 < 20) y2 = y1 + 20;
+    o.x = Math.round(x1); o.y = Math.round(y1);
+    o.w = Math.round(x2 - x1); o.h = Math.round(y2 - y1);
+  }
+
+  renderPropsValues();
+  drawDesign();
+}
+
+function onCanvasUp() {
+  if (dragState && dragState.moved) pushHistory();
+  dragState = null;
+}
+
+// ---------------- SHAPES ----------------
+function addTextObj() {
+  const o = {
+    id: design.nextId++, type: 'text',
+    x: 160, y: 440, w: 800, h: 120,
+    text: 'Новый текст', fontSize: 140, fontFamily: 'Arial',
+    color: '#ffffff', bold: true, italic: false,
+    lineHeight: 1.15, letterSpacing: 0, align: 'left',
+    opacity: 1, locked: false,
+    shadow: defaultShadow(), stroke: defaultStroke(),
+  };
+  design.objects.push(o);
+  design.selectedId = o.id;
+  pushHistory();
+  refreshDesigner();
+}
+
+function addRectObj() {
+  const o = {
+    id: design.nextId++, type: 'rect',
+    x: 400, y: 300, w: 600, h: 300,
+    fill: '#7c3aed', radius: 24, opacity: 1, locked: false,
+    border: defaultBorder(),
+  };
+  design.objects.push(o);
+  design.selectedId = o.id;
+  pushHistory();
+  refreshDesigner();
+}
+
+function addCircleObj() {
+  const o = {
+    id: design.nextId++, type: 'circle',
+    x: 760, y: 340, w: 400, h: 400,
+    fill: '#f59e0b', opacity: 1, locked: false,
+    border: defaultBorder(),
+  };
+  design.objects.push(o);
+  design.selectedId = o.id;
+  pushHistory();
+  refreshDesigner();
+}
+
+function addLineObj() {
+  const o = {
+    id: design.nextId++, type: 'line',
+    x: 160, y: 540, w: 1600, h: 6,
+    fill: '#ffffff', opacity: 1, locked: false,
+  };
+  design.objects.push(o);
+  design.selectedId = o.id;
+  pushHistory();
+  refreshDesigner();
+}
+
+function addImageObj(input) {
+  const f = input.files[0];
+  input.value = '';
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const maxW = 1200;
+      const ratio = img.width / img.height;
+      let w = Math.min(img.width, maxW);
+      let h = w / ratio;
+      const o = {
+        id: design.nextId++, type: 'image',
+        x: Math.round((DW - w) / 2), y: Math.round((DH - h) / 2),
+        w: Math.round(w), h: Math.round(h),
+        opacity: 1, src: reader.result, _img: img, locked: false,
+        filters: defaultFilters(), border: defaultBorder(),
+      };
+      design.objects.push(o);
+      design.selectedId = o.id;
+      pushHistory();
+      refreshDesigner();
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(f);
+}
+
+// ---------------- EDIT ACTIONS ----------------
+function delSelected() {
+  if (!design.selectedId) return;
+  design.objects = design.objects.filter(o => o.id !== design.selectedId);
+  design.selectedId = null;
+  pushHistory();
+  refreshDesigner();
+}
+
+function dupSelected() {
+  const o = getObj(design.selectedId);
+  if (!o) return;
+  const clean = { ...o };
+  delete clean._img;
+  clean.id = design.nextId++;
+  clean.x += 40; clean.y += 40;
+  clean._img = o._img;
+  design.objects.push(clean);
+  design.selectedId = clean.id;
+  pushHistory();
+  refreshDesigner();
+}
+
+function copySelected() {
+  const o = getObj(design.selectedId);
+  if (!o) return;
+  const clean = { ...o };
+  delete clean._img;
+  clipboard = clean;
+  showStatus('Скопировано');
+}
+
+function pasteClipboard() {
+  if (!clipboard) return;
+  const clean = { ...clipboard };
+  clean.id = design.nextId++;
+  clean.x += 40; clean.y += 40;
+  if (clean.type === 'image' && clean.src) {
+    const img = new Image();
+    img.onload = () => drawDesign();
+    img.src = clean.src;
+    clean._img = img;
+  }
+  design.objects.push(clean);
+  design.selectedId = clean.id;
+  pushHistory();
+  refreshDesigner();
+}
+
+function bringForward() {
+  const i = design.objects.findIndex(o => o.id === design.selectedId);
+  if (i < 0 || i === design.objects.length - 1) return;
+  [design.objects[i], design.objects[i + 1]] = [design.objects[i + 1], design.objects[i]];
+  pushHistory();
+  refreshDesigner();
+}
+function sendBackward() {
+  const i = design.objects.findIndex(o => o.id === design.selectedId);
+  if (i <= 0) return;
+  [design.objects[i], design.objects[i - 1]] = [design.objects[i - 1], design.objects[i]];
+  pushHistory();
+  refreshDesigner();
+}
+function bringToFront() {
+  const i = design.objects.findIndex(o => o.id === design.selectedId);
+  if (i < 0 || i === design.objects.length - 1) return;
+  const [o] = design.objects.splice(i, 1);
+  design.objects.push(o);
+  pushHistory();
+  refreshDesigner();
+}
+function sendToBack() {
+  const i = design.objects.findIndex(o => o.id === design.selectedId);
+  if (i <= 0) return;
+  const [o] = design.objects.splice(i, 1);
+  design.objects.unshift(o);
+  pushHistory();
+  refreshDesigner();
+}
+
+function toggleLockByCheckbox(v) {
+  const o = getObj(design.selectedId);
+  if (!o) return;
+  o.locked = !!v;
+  pushHistory();
+  renderLayers();
+  drawDesign();
+}
+
+// ---------------- ALIGNMENT ----------------
+function alignObject(mode) {
+  const o = getObj(design.selectedId);
+  if (!o) return;
+  if (o.type === 'text') { const m = measureTextObj(o); o.w = m.w; o.h = m.h; }
+  switch (mode) {
+    case 'left':    o.x = 0; break;
+    case 'hcenter': o.x = Math.round((DW - o.w) / 2); break;
+    case 'right':   o.x = DW - o.w; break;
+    case 'top':     o.y = 0; break;
+    case 'vcenter': o.y = Math.round((DH - o.h) / 2); break;
+    case 'bottom':  o.y = DH - o.h; break;
+  }
+  pushHistory();
+  refreshDesigner();
+}
+
+// ---------------- LAYERS ----------------
+function refreshDesigner() {
+  renderLayers();
+  renderProps(true);
+  drawDesign();
+}
+
+function renderLayers() {
+  const el = document.getElementById('layers-container');
+  if (!design.objects.length) {
+    el.innerHTML = '<div class="props-empty">Пока нет объектов.<br>Добавьте текст, картинку или фигуру.</div>';
+    return;
+  }
+  const reversed = [...design.objects].reverse();
+  el.innerHTML = reversed.map(o => {
+    const icon = o.type === 'text' ? '🔤'
+               : o.type === 'rect' ? '⬛'
+               : o.type === 'circle' ? '⭕'
+               : o.type === 'line' ? '➖' : '🖼️';
+    const name = o.type === 'text'
+      ? ((o.text || '').split('\n')[0] || 'Текст').slice(0, 30)
+      : o.type === 'rect' ? 'Прямоугольник'
+      : o.type === 'circle' ? 'Круг'
+      : o.type === 'line' ? 'Линия' : 'Картинка';
+    const sel = o.id === design.selectedId ? ' sel' : '';
+    const lockIcn = o.locked ? ' 🔒' : '';
+    return `<div class="layer-item${sel}" onclick="selectLayer(${o.id})">
+      <span class="icn">${icon}</span><span class="nm">${esc(name)}${lockIcn}</span>
+    </div>`;
+  }).join('');
+}
+
+function selectLayer(id) {
+  design.selectedId = id;
+  refreshDesigner();
+}
+
+// ---------------- PROPERTIES PANEL ----------------
+function filterSlider(label, path, min, max, val, unit) {
+  return `<div class="filter-slider">
+    <label>${label}</label>
+    <input type="range" min="${min}" max="${max}" value="${val}"
+           oninput="updFilterByPath('${path}', +this.value)">
+    <span class="val" id="f-${path.replace(/\./g,'-')}">${val}${unit}</span>
+  </div>`;
+}
+
+function renderProps(force) {
+  const el = document.getElementById('props-container');
+  const typeLbl = document.getElementById('props-type');
+  const o = design.selectedId ? getObj(design.selectedId) : null;
+  const id = o ? o.id : null;
+
+  if (!force && id === lastPropsObjId) { renderPropsValues(); return; }
+  lastPropsObjId = id;
+
+  if (!o) {
+    typeLbl.textContent = '';
+    el.innerHTML = '<div class="props-empty">Объект не выбран.<br>Кликните объект на холсте или в списке слоёв.</div>';
+    return;
+  }
+  const typeName = { text: 'текст', rect: 'прямоугольник', circle: 'круг', line: 'линия', image: 'картинка' }[o.type] || '';
+  typeLbl.textContent = '· ' + typeName;
+
+  let html = '';
+
+  // Позиция и размер
+  html += `<div class="props-group">
+    <div class="props-group-title">Позиция и размер</div>
+    <div class="row2">
+      <div><label>X</label><input type="number" data-prop="x" oninput="updPropNum('x', this)"></div>
+      <div><label>Y</label><input type="number" data-prop="y" oninput="updPropNum('y', this)"></div>
+    </div>
+    <div class="row2">
+      <div><label>Ширина</label><input type="number" data-prop="w" oninput="updPropNum('w', this)"></div>
+      <div><label>Высота</label><input type="number" data-prop="h" oninput="updPropNum('h', this)"></div>
+    </div>
+    <label style="margin-top:8px;">Выравнивание на холсте</label>
+    <div class="align-buttons">
+      <button onclick="alignObject('left')">⇤ лев</button>
+      <button onclick="alignObject('hcenter')">↔ центр</button>
+      <button onclick="alignObject('right')">прав ⇥</button>
+      <button onclick="alignObject('top')">⇡ вверх</button>
+      <button onclick="alignObject('vcenter')">↕ центр</button>
+      <button onclick="alignObject('bottom')">⇣ вниз</button>
+    </div>
+  </div>`;
+
+  if (o.type === 'text') {
+    html += `<div class="props-group">
+      <div class="props-group-title">Текст</div>
+      <label>Содержимое</label>
+      <textarea data-prop="text" oninput="updProp('text', this.value)"></textarea>
+      <div class="row2">
+        <div><label>Размер</label><input type="number" data-prop="fontSize" oninput="updPropNum('fontSize', this)"></div>
+        <div><label>Межстроч.</label><input type="number" step="0.05" data-prop="lineHeight" oninput="updPropNum('lineHeight', this)"></div>
+      </div>
+      <div class="row2">
+        <div><label>Межбукв.</label><input type="number" step="1" data-prop="letterSpacing" oninput="updPropNum('letterSpacing', this)"></div>
+        <div><label>Цвет</label><input type="color" data-prop="color" oninput="updProp('color', this.value)"></div>
+      </div>
+      <label>Шрифт</label>
+      <select data-prop="fontFamily" onchange="updProp('fontFamily', this.value)">
+        ${['Arial','Georgia','Verdana','Tahoma','Times New Roman','Courier New','Impact'].map(f =>
+          `<option value="${f}">${f}</option>`).join('')}
+      </select>
+      <label>Выравнивание текста</label>
+      <div class="align-buttons">
+        <button onclick="setTextAlign('left')"   id="ta-left">Лево</button>
+        <button onclick="setTextAlign('center')" id="ta-center">Центр</button>
+        <button onclick="setTextAlign('right')"  id="ta-right">Право</button>
+      </div>
+      <div class="row2" style="margin-top:8px;">
+        <label class="inline"><input type="checkbox" data-prop="bold" onchange="updProp('bold', this.checked)"> Жирный</label>
+        <label class="inline"><input type="checkbox" data-prop="italic" onchange="updProp('italic', this.checked)"> Курсив</label>
+      </div>
+    </div>
+    <div class="props-group">
+      <div class="props-group-title">Тень
+        <label class="inline"><input type="checkbox" data-prop="shadow.enabled" onchange="updNested('shadow','enabled',this.checked)"> вкл</label>
+      </div>
+      <div class="row2">
+        <div><label>Смещ. X</label><input type="number" data-prop="shadow.offsetX" oninput="updNestedNum('shadow','offsetX',this)"></div>
+        <div><label>Смещ. Y</label><input type="number" data-prop="shadow.offsetY" oninput="updNestedNum('shadow','offsetY',this)"></div>
+      </div>
+      <div class="row2">
+        <div><label>Размытие</label><input type="number" data-prop="shadow.blur" oninput="updNestedNum('shadow','blur',this)"></div>
+        <div><label>Цвет</label><input type="color" data-prop="shadow.color" oninput="updNested('shadow','color',this.value)"></div>
+      </div>
+    </div>
+    <div class="props-group">
+      <div class="props-group-title">Обводка
+        <label class="inline"><input type="checkbox" data-prop="stroke.enabled" onchange="updNested('stroke','enabled',this.checked)"> вкл</label>
+      </div>
+      <div class="row2">
+        <div><label>Толщина</label><input type="number" data-prop="stroke.width" oninput="updNestedNum('stroke','width',this)"></div>
+        <div><label>Цвет</label><input type="color" data-prop="stroke.color" oninput="updNested('stroke','color',this.value)"></div>
+      </div>
+    </div>`;
+  }
+
+  if (o.type === 'rect' || o.type === 'circle' || o.type === 'line') {
+    html += `<div class="props-group">
+      <div class="props-group-title">Заливка</div>
+      <div class="row2">
+        <div><label>Цвет</label><input type="color" data-prop="fill" oninput="updProp('fill', this.value)"></div>
+        ${o.type === 'rect'
+          ? `<div><label>Радиус</label><input type="number" data-prop="radius" oninput="updPropNum('radius', this)"></div>`
+          : `<div></div>`}
+      </div>
+    </div>`;
+    if (o.type !== 'line') {
+      html += `<div class="props-group">
+        <div class="props-group-title">Обводка
+          <label class="inline"><input type="checkbox" data-prop="border.enabled" onchange="updNested('border','enabled',this.checked)"> вкл</label>
+        </div>
+        <div class="row2">
+          <div><label>Толщина</label><input type="number" data-prop="border.width" oninput="updNestedNum('border','width',this)"></div>
+          <div><label>Цвет</label><input type="color" data-prop="border.color" oninput="updNested('border','color',this.value)"></div>
+        </div>
+      </div>`;
     }
   }
 
-  function cancelEditing() {
-    editingAnnId = null;
-    updateEditingInfo();
-    showStatus('Режим редактирования отменён');
+  if (o.type === 'image') {
+    html += `<div class="props-group">
+      <div class="props-group-title">Границы
+        <label class="inline"><input type="checkbox" data-prop="border.enabled" onchange="updNested('border','enabled',this.checked)"> вкл</label>
+      </div>
+      <div class="row2">
+        <div><label>Толщина</label><input type="number" data-prop="border.width" oninput="updNestedNum('border','width',this)"></div>
+        <div><label>Цвет</label><input type="color" data-prop="border.color" oninput="updNested('border','color',this.value)"></div>
+      </div>
+      <label>Радиус скругления</label>
+      <input type="number" data-prop="border.radius" oninput="updNestedNum('border','radius',this)">
+    </div>
+    <div class="props-group">
+      <div class="props-group-title">Фильтры</div>
+      ${filterSlider('Яркость',  'filters.brightness', 0, 200, o.filters?.brightness ?? 100, '%')}
+      ${filterSlider('Контраст', 'filters.contrast',   0, 200, o.filters?.contrast ?? 100, '%')}
+      ${filterSlider('Насыщ.',   'filters.saturation', 0, 200, o.filters?.saturation ?? 100, '%')}
+      ${filterSlider('Размытие', 'filters.blur',       0, 20,  o.filters?.blur ?? 0, 'px')}
+      ${filterSlider('Ч/Б',      'filters.grayscale',  0, 100, o.filters?.grayscale ?? 0, '%')}
+      ${filterSlider('Сепия',    'filters.sepia',      0, 100, o.filters?.sepia ?? 0, '%')}
+      ${filterSlider('Оттенок',  'filters.hueRotate',  0, 360, o.filters?.hueRotate ?? 0, '°')}
+      <button class="btn sm secondary" style="margin-top:6px;width:100%;" onclick="resetFilters('filters')">Сбросить</button>
+    </div>`;
   }
 
-  function newDesign() {
-    if (design.objects.length && !confirm('Очистить текущий дизайн?')) return;
-    resetDesign();
-    editingAnnId = null;
-    document.getElementById('designer-from').value = '';
-    document.getElementById('designer-to').value = '';
-    updateEditingInfo();
-    updateBgPanels();
-    refreshDesigner();
-  }
+  // Общие
+  html += `<div class="props-group">
+    <div class="props-group-title">Общие</div>
+    <label>Прозрачность</label>
+    <div class="filter-slider">
+      <input type="range" min="0" max="100" step="1"
+             data-prop="opacityPct" oninput="updOpacity(this.value)" style="flex:1;">
+      <span class="val" id="opacity-val">100%</span>
+    </div>
+    <label class="inline" style="margin-top:8px;">
+      <input type="checkbox" data-prop="locked" onchange="toggleLockByCheckbox(this.checked)"> Заблокировать объект
+    </label>
+  </div>`;
 
-  function serializeDesign() {
-    const bg = design.background;
-    return JSON.stringify({
-      background: {
-        type: bg.type,
-        color: bg.color,
-        gradientFrom: bg.gradientFrom,
-        gradientTo: bg.gradientTo,
-        gradientAngle: bg.gradientAngle,
-        image: bg.image,
-      },
-      objects: design.objects.map(o => {
-        const clean = { ...o };
-        delete clean._img;
-        return clean;
-      }),
-      nextId: design.nextId,
+  el.innerHTML = html;
+  renderPropsValues();
+}
+
+function updFilterByPath(path, value) {
+  const o = getObj(design.selectedId);
+  if (!o) return;
+  const [root, key] = path.split('.');
+  if (!o[root]) o[root] = defaultFilters();
+  o[root][key] = value;
+  const el = document.getElementById('f-' + path.replace(/\./g, '-'));
+  if (el) {
+    const unit = key === 'blur' ? 'px' : (key === 'hueRotate' ? '°' : '%');
+    el.textContent = value + unit;
+  }
+  drawDesign();
+  scheduleHistoryPush();
+}
+
+function resetFilters(path) {
+  const o = getObj(design.selectedId);
+  if (!o) return;
+  o[path] = defaultFilters();
+  pushHistory();
+  renderProps(true);
+  drawDesign();
+}
+
+function setTextAlign(a) {
+  const o = getObj(design.selectedId);
+  if (!o || o.type !== 'text') return;
+  o.align = a;
+  pushHistory();
+  renderProps(true);
+  drawDesign();
+}
+
+function updOpacity(v) {
+  const o = getObj(design.selectedId);
+  if (!o) return;
+  o.opacity = (+v) / 100;
+  const el = document.getElementById('opacity-val');
+  if (el) el.textContent = v + '%';
+  drawDesign();
+  scheduleHistoryPush();
+}
+
+function updProp(key, value) {
+  const o = getObj(design.selectedId);
+  if (!o) return;
+  o[key] = value;
+  drawDesign();
+  renderLayers();
+  renderPropsValues();
+  scheduleHistoryPush();
+}
+
+function updPropNum(key, input) {
+  const v = input.value.trim();
+  if (v === '') return;
+  const n = Number(v);
+  if (Number.isNaN(n)) return;
+  updProp(key, n);
+}
+
+function updNested(root, key, value) {
+  const o = getObj(design.selectedId);
+  if (!o) return;
+  if (!o[root]) o[root] = {};
+  o[root][key] = value;
+  drawDesign();
+  scheduleHistoryPush();
+}
+
+function updNestedNum(root, key, input) {
+  const v = input.value.trim();
+  if (v === '') return;
+  const n = Number(v);
+  if (Number.isNaN(n)) return;
+  updNested(root, key, n);
+}
+
+function getPath(obj, path) {
+  const parts = path.split('.');
+  let v = obj;
+  for (const p of parts) { if (v == null) return undefined; v = v[p]; }
+  return v;
+}
+
+function renderPropsValues() {
+  const o = design.selectedId ? getObj(design.selectedId) : null;
+  if (!o) return;
+  document.querySelectorAll('#props-container [data-prop]').forEach(el => {
+    const k = el.dataset.prop;
+
+    if (k === 'opacityPct') {
+      const pct = Math.round((o.opacity ?? 1) * 100);
+      if (document.activeElement !== el) el.value = pct;
+      const lbl = document.getElementById('opacity-val');
+      if (lbl) lbl.textContent = pct + '%';
+      return;
+    }
+
+    const v = getPath(o, k);
+    if (el.type === 'checkbox') el.checked = !!v;
+    else if (el.type === 'color') el.value = v || '#000000';
+    else if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT' || el.tagName === 'SELECT') {
+      if (document.activeElement !== el) el.value = v ?? '';
+    }
+  });
+
+  if (o.type === 'text') {
+    ['left','center','right'].forEach(a => {
+      const btn = document.getElementById('ta-' + a);
+      if (!btn) return;
+      btn.style.background = (o.align === a) ? '#1e40af' : '';
+      btn.style.color = (o.align === a) ? '#fff' : '';
     });
   }
+}
 
-  async function exportDesign() {
-    const from = document.getElementById('designer-from').value;
-    const to = document.getElementById('designer-to').value;
-    if (!from || !to) return showStatus('Укажите даты показа', false);
-    if (from > to) return showStatus('Дата начала позже даты окончания', false);
+// ---------------- BACKGROUND ----------------
+function setBgType(t) {
+  design.background.type = t;
+  updateBgPanels();
+  pushHistory();
+  drawDesign();
+}
 
-    const prevSel = design.selectedId;
-    design.selectedId = null;
-    drawDesign();
+function updateBgPanels() {
+  const t = design.background.type;
+  document.querySelectorAll('input[name="bg-type"]').forEach(r => { r.checked = r.value === t; });
+  document.getElementById('bg-solid-panel').style.display = t === 'solid' ? 'block' : 'none';
+  document.getElementById('bg-gradient-panel').style.display = t === 'gradient' ? 'block' : 'none';
+  document.getElementById('bg-image-panel').style.display = t === 'image' ? 'block' : 'none';
 
-    const canvas = getDesignerCanvas();
-    const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+  document.getElementById('bg-color').value = design.background.color || '#0f172a';
+  document.getElementById('bg-grad-from').value = design.background.gradientFrom || '#1e3a8a';
+  document.getElementById('bg-grad-to').value = design.background.gradientTo || '#7c3aed';
+  document.getElementById('bg-grad-angle').value = design.background.gradientAngle || 135;
 
-    design.selectedId = prevSel;
-    drawDesign();
+  const f = design.background.filters || defaultFilters();
+  const setV = (key, v, unit) => {
+    const el = document.getElementById('bgb-' + key);
+    if (el && document.activeElement !== el) el.value = v;
+    const lbl = document.getElementById('bgb-' + key + '-val');
+    if (lbl) lbl.textContent = v + unit;
+  };
+  setV('brightness', f.brightness, '%');
+  setV('contrast',   f.contrast, '%');
+  setV('saturation', f.saturation, '%');
+  setV('blur',       f.blur, 'px');
+  setV('grayscale',  f.grayscale, '%');
+  setV('sepia',      f.sepia, '%');
+  setV('hueRotate',  f.hueRotate, '°');
+}
 
-    if (!blob) return showStatus('Не удалось создать изображение', false);
+function onBgChange() {
+  design.background.color = document.getElementById('bg-color').value;
+  design.background.gradientFrom = document.getElementById('bg-grad-from').value;
+  design.background.gradientTo = document.getElementById('bg-grad-to').value;
+  design.background.gradientAngle = +document.getElementById('bg-grad-angle').value || 135;
+  drawDesign();
+  scheduleHistoryPush();
+}
 
-    const fname = `announcement_${Date.now()}.png`;
-    const fd = new FormData();
-    fd.append('file', new File([blob], fname, { type: 'image/png' }));
-    fd.append('date_from', from);
-    fd.append('date_to', to);
-    fd.append('design_json', serializeDesign());
+function setBgImage(input) {
+  const f = input.files[0];
+  input.value = '';
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      design.background.image = r.result;
+      design.background._img = img;
+      design.background.type = 'image';
+      if (!design.background.filters) design.background.filters = defaultFilters();
+      updateBgPanels();
+      pushHistory();
+      drawDesign();
+    };
+    img.src = r.result;
+  };
+  r.readAsDataURL(f);
+}
 
-    let url, method;
-    if (editingAnnId) {
-      url = `/api/announcements/${editingAnnId}`;
-      method = 'PUT';
-    } else {
-      url = '/api/announcements';
-      method = 'POST';
+function clearBgImage() {
+  design.background.image = null;
+  design.background._img = null;
+  pushHistory();
+  drawDesign();
+}
+
+function updBgFilter(key, value) {
+  if (!design.background.filters) design.background.filters = defaultFilters();
+  design.background.filters[key] = value;
+  const unit = key === 'blur' ? 'px' : (key === 'hueRotate' ? '°' : '%');
+  const lbl = document.getElementById('bgb-' + key + '-val');
+  if (lbl) lbl.textContent = value + unit;
+  drawDesign();
+  scheduleHistoryPush();
+}
+
+function resetBgFilters() {
+  design.background.filters = defaultFilters();
+  updateBgPanels();
+  pushHistory();
+  drawDesign();
+}
+
+// ---------------- EXPORT / EDIT EXISTING ----------------
+function openDesignerNew() {
+  if (design.objects.length && !confirm('Текущий дизайн будет очищен. Продолжить?')) return;
+  resetDesign();
+  editingAnnId = null;
+  updateEditingInfo();
+  initDesigner();
+  updateBgPanels();
+  refreshDesigner();
+  pushHistory();
+  document.querySelector('nav button[data-tab="designer"]').click();
+}
+
+async function openDesignerExisting(annId) {
+  const r = await fetch(`/api/announcements/${annId}/design`);
+  if (!r.ok) return showStatus('Не удалось загрузить дизайн', false);
+  const data = await r.json();
+  if (!data.design_json) return showStatus('У этого объявления нет сохранённого дизайна', false);
+  let parsed;
+  try { parsed = JSON.parse(data.design_json); }
+  catch (e) { return showStatus('Некорректный дизайн', false); }
+
+  resetDesign();
+  design.background = {
+    type: parsed.background?.type || 'solid',
+    color: parsed.background?.color || '#0f172a',
+    gradientFrom: parsed.background?.gradientFrom || '#1e3a8a',
+    gradientTo: parsed.background?.gradientTo || '#7c3aed',
+    gradientAngle: parsed.background?.gradientAngle ?? 135,
+    image: parsed.background?.image || null,
+    _img: null,
+    filters: parsed.background?.filters || defaultFilters(),
+  };
+  design.nextId = parsed.nextId || 1;
+  design.objects = [];
+
+  for (const src of (parsed.objects || [])) {
+    const o = { ...src };
+    if (!o.shadow) o.shadow = defaultShadow();
+    if (!o.stroke) o.stroke = defaultStroke();
+    if (!o.border) o.border = defaultBorder();
+    if (o.type === 'image' && !o.filters) o.filters = defaultFilters();
+    if (o.opacity == null) o.opacity = 1;
+    if (o.locked == null) o.locked = false;
+    if (o.type === 'image' && o.src) {
+      const img = new Image();
+      img.onload = () => drawDesign();
+      img.src = o.src;
+      o._img = img;
     }
-
-    const r = await fetch(url, { method, body: fd });
-    if (!r.ok) {
-      let msg = 'Ошибка сохранения';
-      try { msg = (await r.json()).detail || msg; } catch (e) {}
-      return showStatus(msg, false);
-    }
-
-    showStatus(editingAnnId ? 'Объявление обновлено' : 'Объявление создано');
-    editingAnnId = null;
-    updateEditingInfo();
-    loadAnnouncements();
+    design.objects.push(o);
+    if (o.id >= design.nextId) design.nextId = o.id + 1;
   }
 
-  function downloadDesign() {
-    const prevSel = design.selectedId;
-    design.selectedId = null;
-    drawDesign();
-    const a = document.createElement('a');
-    a.href = getDesignerCanvas().toDataURL('image/png');
-    a.download = `announcement_${Date.now()}.png`;
-    a.click();
-    design.selectedId = prevSel;
-    drawDesign();
+  if (design.background.type === 'image' && design.background.image) {
+    const img = new Image();
+    img.onload = () => drawDesign();
+    img.src = design.background.image;
+    design.background._img = img;
   }
+
+  const list = await fetch('/api/announcements').then(r => r.json());
+  const cur = list.find(a => a.id === annId);
+  if (cur) {
+    document.getElementById('designer-from').value = cur.date_from;
+    document.getElementById('designer-to').value = cur.date_to;
+  }
+
+  editingAnnId = annId;
+  updateEditingInfo();
+  initDesigner();
+  updateBgPanels();
+  refreshDesigner();
+  pushHistory();
+  document.querySelector('nav button[data-tab="designer"]').click();
+  showStatus('Дизайн загружен');
+}
+
+function updateEditingInfo() {
+  const info = document.getElementById('designer-editing-info');
+  const saveBtn = document.getElementById('designer-save-btn');
+  if (editingAnnId) {
+    info.innerHTML = `<span class="editing-badge">✏️ Редактирование объявления #${editingAnnId} <button onclick="cancelEditing()" title="Отменить">×</button></span>`;
+    saveBtn.textContent = '💾 Обновить объявление';
+  } else {
+    info.textContent = 'Новое объявление';
+    saveBtn.textContent = '💾 Сохранить как объявление';
+  }
+}
+
+function cancelEditing() {
+  editingAnnId = null;
+  updateEditingInfo();
+  showStatus('Режим редактирования отменён');
+}
+
+function newDesign() {
+  if (design.objects.length && !confirm('Очистить текущий дизайн?')) return;
+  resetDesign();
+  editingAnnId = null;
+  document.getElementById('designer-from').value = '';
+  document.getElementById('designer-to').value = '';
+  updateEditingInfo();
+  updateBgPanels();
+  refreshDesigner();
+  pushHistory();
+}
+
+function serializeDesign() {
+  const bg = design.background;
+  return JSON.stringify({
+    background: {
+      type: bg.type,
+      color: bg.color,
+      gradientFrom: bg.gradientFrom,
+      gradientTo: bg.gradientTo,
+      gradientAngle: bg.gradientAngle,
+      image: bg.image,
+      filters: bg.filters || defaultFilters(),
+    },
+    objects: design.objects.map(o => {
+      const clean = { ...o };
+      delete clean._img;
+      return clean;
+    }),
+    nextId: design.nextId,
+  });
+}
+
+async function exportDesign() {
+  const from = document.getElementById('designer-from').value;
+  const to = document.getElementById('designer-to').value;
+  if (!from || !to) return showStatus('Укажите даты показа', false);
+  if (from > to) return showStatus('Дата начала позже даты окончания', false);
+
+  const prevSel = design.selectedId;
+  design.selectedId = null;
+  drawDesign();
+
+  const canvas = getDesignerCanvas();
+  const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+
+  design.selectedId = prevSel;
+  drawDesign();
+
+  if (!blob) return showStatus('Не удалось создать изображение', false);
+
+  const fname = `announcement_${Date.now()}.png`;
+  const fd = new FormData();
+  fd.append('file', new File([blob], fname, { type: 'image/png' }));
+  fd.append('date_from', from);
+  fd.append('date_to', to);
+  fd.append('design_json', serializeDesign());
+
+  let url, method;
+  if (editingAnnId) {
+    url = `/api/announcements/${editingAnnId}`;
+    method = 'PUT';
+  } else {
+    url = '/api/announcements';
+    method = 'POST';
+  }
+
+  const r = await fetch(url, { method, body: fd });
+  if (!r.ok) {
+    let msg = 'Ошибка сохранения';
+    try { msg = (await r.json()).detail || msg; } catch (e) {}
+    return showStatus(msg, false);
+  }
+
+  showStatus(editingAnnId ? 'Объявление обновлено' : 'Объявление создано');
+  editingAnnId = null;
+  updateEditingInfo();
+  loadAnnouncements();
+}
+
+function downloadDesign() {
+  const prevSel = design.selectedId;
+  design.selectedId = null;
+  drawDesign();
+  const a = document.createElement('a');
+  a.href = getDesignerCanvas().toDataURL('image/png');
+  a.download = `announcement_${Date.now()}.png`;
+  a.click();
+  design.selectedId = prevSel;
+  drawDesign();
+}
 
   // ==================================================================
   // ============================= INIT ===============================
   // ==================================================================
   loadEmployees();
+  loadBirthdayBackgrounds();
   loadAnnouncements();
   loadImages();
   loadVideos();
