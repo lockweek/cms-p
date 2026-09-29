@@ -1,10 +1,10 @@
 import os
-import os
 import base64
 import secrets
 import uuid
 import shutil
 import sqlite3
+import random
 from datetime import date, datetime
 from typing import Optional
 
@@ -32,17 +32,15 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin")
 ADMIN_REALM = "CMS Admin"
 
 if ADMIN_PASSWORD == "admin":
-    print("[AUTH] ⚠️  ВНИМАНИЕ: используется пароль по умолчанию. "
-          "Задайте ADMIN_PASSWORD через переменную окружения!")
+    print("[AUTH] ⚠️  Используется пароль по умолчанию. Задайте ADMIN_PASSWORD!")
 
-# Пути, требующие авторизации (всё, что относится к админке).
-# /display, /api/display-data, /media, /static — публичные.
 PROTECTED_PREFIXES = (
     "/admin",
     "/api/employees",
     "/api/announcements",
     "/api/images",
     "/api/videos",
+    "/api/birthday-backgrounds",
     "/api/settings",
 )
 
@@ -62,24 +60,23 @@ def _check_basic_auth(request: Request) -> bool:
     user, sep, pwd = decoded.partition(":")
     if not sep:
         return False
-    ok_user = secrets.compare_digest(user, ADMIN_USER)
-    ok_pwd = secrets.compare_digest(pwd, ADMIN_PASSWORD)
-    return ok_user and ok_pwd
+    return secrets.compare_digest(user, ADMIN_USER) and secrets.compare_digest(pwd, ADMIN_PASSWORD)
 
 
 class AdminAuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if _is_protected(request.url.path):
-            if not _check_basic_auth(request):
-                return Response(
-                    status_code=401,
-                    content="Требуется авторизация",
-                    headers={"WWW-Authenticate": f'Basic realm="{ADMIN_REALM}"'},
-                )
+        if _is_protected(request.url.path) and not _check_basic_auth(request):
+            return Response(
+                status_code=401,
+                content="Требуется авторизация",
+                headers={"WWW-Authenticate": f'Basic realm="{ADMIN_REALM}"'},
+            )
         return await call_next(request)
 
 
-# ---- БД и FastAPI ----
+# ==================================================================
+# ============================ DATABASE ============================
+# ==================================================================
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -87,26 +84,95 @@ def get_db():
 
 
 def init_db():
-    # ... (весь код init_db из предыдущей версии, БЕЗ изменений)
-    ...
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("""CREATE TABLE IF NOT EXISTS employees (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        full_name TEXT NOT NULL,
+        position TEXT NOT NULL,
+        birth_date TEXT NOT NULL
+    )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS announcements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        filename TEXT NOT NULL,
+        original_name TEXT,
+        date_from TEXT NOT NULL,
+        date_to TEXT NOT NULL
+    )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS images (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        filename TEXT NOT NULL,
+        original_name TEXT,
+        uploaded_at TEXT NOT NULL
+    )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS videos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        filename TEXT NOT NULL,
+        original_name TEXT,
+        uploaded_at TEXT NOT NULL
+    )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS birthday_backgrounds (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        filename TEXT NOT NULL,
+        original_name TEXT,
+        uploaded_at TEXT NOT NULL
+    )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT
+    )""")
 
+    # миграция: колонка design_json
+    c.execute("PRAGMA table_info(announcements)")
+    cols = {row[1] for row in c.fetchall()}
+    if "design_json" not in cols:
+        c.execute("ALTER TABLE announcements ADD COLUMN design_json TEXT")
+
+    defaults = {
+        "slide_duration": "8",
+        "image_slide_duration": "8",
+        "birthday_bg_color": "#0f172a",
+        "birthday_bg_gradient": "linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%)",
+        "birthday_bg_image": "",             # legacy
+        "birthday_bg_rotation": "sequential",  # sequential | random
+        "video_muted": "1",
+    }
+    for k, v in defaults.items():
+        c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (k, v))
+
+    # миграция: legacy single bg -> new table
+    legacy = c.execute("SELECT value FROM settings WHERE key='birthday_bg_image'").fetchone()
+    if legacy and legacy[0]:
+        has_new = c.execute("SELECT COUNT(*) FROM birthday_backgrounds").fetchone()[0]
+        if has_new == 0:
+            c.execute(
+                "INSERT INTO birthday_backgrounds (filename, original_name, uploaded_at) VALUES (?, ?, ?)",
+                (legacy[0], legacy[0], datetime.utcnow().isoformat()),
+            )
+            c.execute("UPDATE settings SET value='' WHERE key='birthday_bg_image'")
+            print("[MIGRATION] Legacy birthday_bg_image → birthday_backgrounds")
+
+    conn.commit()
+    conn.close()
+
+
+init_db()
 
 app = FastAPI(title="CMS Display")
-app.add_middleware(AdminAuthMiddleware)          # <-- регистрация auth
+app.add_middleware(AdminAuthMiddleware)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+# ------------------- LOGOUT -------------------
 @app.get("/logout")
 @app.get("/api/logout")
 def logout():
-    """
-    Принудительный выход из Basic Auth.
-    Возвращает 401 → браузер должен сбросить кэшированные креды.
-    """
     return Response(
         status_code=401,
         content="Logged out",
         headers={"WWW-Authenticate": f'Basic realm="{ADMIN_REALM}"'},
     )
+
 
 # ------------------- PAGES -------------------
 @app.get("/")
@@ -270,7 +336,6 @@ def delete_employee(emp_id: int):
 # ------------------- ANNOUNCEMENTS -------------------
 @app.get("/api/announcements")
 def list_announcements():
-    """Список без design_json — чтобы не грузить мегабайты base64 в браузер."""
     conn = get_db()
     rows = conn.execute(
         "SELECT id, filename, original_name, date_from, date_to FROM announcements ORDER BY date_from DESC"
@@ -282,9 +347,7 @@ def list_announcements():
 @app.get("/api/announcements/{ann_id}/design")
 def get_announcement_design(ann_id: int):
     conn = get_db()
-    row = conn.execute(
-        "SELECT design_json FROM announcements WHERE id=?", (ann_id,)
-    ).fetchone()
+    row = conn.execute("SELECT design_json FROM announcements WHERE id=?", (ann_id,)).fetchone()
     conn.close()
     if not row:
         raise HTTPException(404, "Not found")
@@ -300,7 +363,7 @@ async def create_announcement(
 ):
     ext = _ext(file.filename)
     if ext not in ALLOWED_ANN_EXT:
-        raise HTTPException(400, "Неподдерживаемый формат (картинки и видео)")
+        raise HTTPException(400, "Неподдерживаемый формат")
     fname = f"{uuid.uuid4().hex}{ext}"
     _save(file, fname)
 
@@ -314,11 +377,9 @@ async def create_announcement(
     ann_id = cur.lastrowid
     conn.close()
     return {
-        "id": ann_id,
-        "filename": fname,
+        "id": ann_id, "filename": fname,
         "media_type": _media_type(fname),
-        "date_from": date_from,
-        "date_to": date_to,
+        "date_from": date_from, "date_to": date_to,
     }
 
 
@@ -473,6 +534,52 @@ def delete_video(vid_id: int):
     return {"ok": True}
 
 
+# ------------------- BIRTHDAY BACKGROUNDS (ротация) -------------------
+@app.get("/api/birthday-backgrounds")
+def list_bg():
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM birthday_backgrounds ORDER BY uploaded_at DESC").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+@app.post("/api/birthday-backgrounds")
+async def create_bg(files: list[UploadFile] = File(...)):
+    created = []
+    conn = get_db()
+    for file in files:
+        ext = _ext(file.filename)
+        if ext not in ALLOWED_EXT:
+            continue
+        fname = f"bgbg_{uuid.uuid4().hex}{ext}"
+        _save(file, fname)
+        cur = conn.execute(
+            "INSERT INTO birthday_backgrounds (filename, original_name, uploaded_at) VALUES (?, ?, ?)",
+            (fname, file.filename, datetime.utcnow().isoformat()),
+        )
+        created.append({"id": cur.lastrowid, "filename": fname, "original_name": file.filename})
+    conn.commit()
+    conn.close()
+    if not created:
+        raise HTTPException(400, "Не удалось загрузить ни одного изображения")
+    return created
+
+
+@app.delete("/api/birthday-backgrounds/{bg_id}")
+def delete_bg(bg_id: int):
+    conn = get_db()
+    row = conn.execute("SELECT filename FROM birthday_backgrounds WHERE id=?", (bg_id,)).fetchone()
+    if row:
+        try:
+            os.remove(os.path.join(UPLOAD_DIR, row["filename"]))
+        except OSError:
+            pass
+    conn.execute("DELETE FROM birthday_backgrounds WHERE id=?", (bg_id,))
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+
 # ------------------- SETTINGS -------------------
 @app.get("/api/settings")
 def get_settings():
@@ -486,29 +593,28 @@ def get_settings():
 def update_settings(data: dict):
     conn = get_db()
     for k, v in data.items():
-        conn.execute(
-            "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (k, str(v))
-        )
+        conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (k, str(v)))
     conn.commit()
     conn.close()
     return {"ok": True}
 
 
+# legacy endpoint — оставлен для совместимости, больше не используется UI
 @app.post("/api/settings/upload-bg")
 async def upload_bg(file: UploadFile = File(...)):
     ext = _ext(file.filename)
     if ext not in ALLOWED_EXT:
         raise HTTPException(400, "Неподдерживаемый формат")
-    fname = f"bg_{uuid.uuid4().hex}{ext}"
+    fname = f"bgbg_{uuid.uuid4().hex}{ext}"
     _save(file, fname)
     conn = get_db()
-    conn.execute(
-        "INSERT OR REPLACE INTO settings (key, value) VALUES ('birthday_bg_image', ?)",
-        (fname,),
+    cur = conn.execute(
+        "INSERT INTO birthday_backgrounds (filename, original_name, uploaded_at) VALUES (?, ?, ?)",
+        (fname, file.filename, datetime.utcnow().isoformat()),
     )
     conn.commit()
     conn.close()
-    return {"filename": fname}
+    return {"id": cur.lastrowid, "filename": fname}
 
 
 # ------------------- DISPLAY DATA -------------------
@@ -518,6 +624,7 @@ def display_data():
     conn = get_db()
     settings = {r["key"]: r["value"] for r in conn.execute("SELECT * FROM settings").fetchall()}
 
+    # Дни рождения
     employees = [dict(r) for r in conn.execute("SELECT * FROM employees").fetchall()]
     bday_people = []
     for e in employees:
@@ -530,6 +637,21 @@ def display_data():
 
     birthday_slides = [bday_people[i : i + 3] for i in range(0, len(bday_people), 3)]
 
+    # Фоны для ДР с ротацией
+    bgs = [dict(r) for r in conn.execute(
+        "SELECT * FROM birthday_backgrounds ORDER BY uploaded_at DESC"
+    ).fetchall()]
+    bg_files = [b["filename"] for b in bgs]
+
+    # fallback: legacy одиночный фон (на случай если миграция не сработала)
+    if not bg_files and settings.get("birthday_bg_image"):
+        bg_files = [settings["birthday_bg_image"]]
+
+    rotation_mode = settings.get("birthday_bg_rotation", "sequential")
+    if rotation_mode == "random" and len(bg_files) > 1:
+        random.shuffle(bg_files)
+
+    # Активные объявления
     anns = []
     for a in conn.execute("SELECT * FROM announcements").fetchall():
         try:
@@ -555,8 +677,10 @@ def display_data():
     conn.close()
 
     slides = []
-    for grp in birthday_slides:
-        slides.append({"type": "birthday", "people": grp})
+    # birthday-слайды с индивидуальным фоном
+    for i, grp in enumerate(birthday_slides):
+        bg = bg_files[i % len(bg_files)] if bg_files else None
+        slides.append({"type": "birthday", "people": grp, "bg_image": bg})
 
     for a in anns:
         slides.append({
@@ -585,4 +709,5 @@ def display_data():
         "has_birthdays": has_birthdays,
         "has_images": len(images) > 0,
         "has_videos": len(videos) > 0,
+        "birthday_bg_count": len(bg_files),
     }
